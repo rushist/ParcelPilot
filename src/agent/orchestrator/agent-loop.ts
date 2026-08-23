@@ -10,6 +10,7 @@ import { scanSessionAndInput, scrubOutputSecrets, TrapScanResult } from '../../h
 import { getTicketById, getAccountById, getOrderById, getOrdersByAccount, getTicketsByAccount } from '../../lib/data-store';
 import { calculateSlaStatus } from '../../calculators/sla';
 import { calculateServiceCredit } from '../../calculators/service-credit';
+import { OrderRecord, TicketRecord } from '../../db/schema';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -630,6 +631,175 @@ async function runDeterministicAgentTurn(
     }
 
     // ------------------------------------------------------------------------
+    // Scenario 6B: Order Listing & Shipment Status Inquiries (e.g. "my orders", "show shipments")
+    // ------------------------------------------------------------------------
+    else if (
+      queryLower.includes('my orders') ||
+      queryLower.includes('my order') ||
+      queryLower.includes('my shipment') ||
+      queryLower.includes('my shipments') ||
+      queryLower.includes('show orders') ||
+      queryLower.includes('show my orders') ||
+      queryLower.includes('list orders') ||
+      queryLower.includes('list my orders') ||
+      queryLower.includes('get orders') ||
+      queryLower.includes('check my orders') ||
+      queryLower.includes('all orders') ||
+      queryLower.includes('recent orders') ||
+      queryLower.includes('order status') ||
+      queryLower.includes('shipment status') ||
+      (queryLower.includes('orders') && !queryLower.includes('cancel') && !queryLower.includes('credit') && !queryLower.includes('fee'))
+    ) {
+      turnCount++;
+      const acctMatch = query.match(/ACCT-\d+/i);
+      const targetAccountId = session.surface === 'customer'
+        ? session.account_id
+        : (acctMatch ? acctMatch[0].toUpperCase() : (session as any).account_id || 'ACCT-001');
+
+      try {
+        const ordRes = await dispatchToolCall(session, 'get_orders', { account_id: targetAccountId });
+        toolTraces.push(ordRes.trace);
+
+        const accRes = await dispatchToolCall(session, 'get_account', { account_id: targetAccountId });
+        toolTraces.push(accRes.trace);
+
+        const account = accRes.result;
+        const orders: OrderRecord[] = ordRes.result || [];
+
+        if (orders.length === 0) {
+          responseText = `### 📦 Shipment Orders for ${account?.account_name || targetAccountId}\n\n` +
+            `- **Account ID:** \`${targetAccountId}\`\n` +
+            `- **Plan Tier:** \`${account?.plan || 'Enterprise'}\`\n\n` +
+            `There are currently no active or historical shipment orders recorded for this account.`;
+        } else {
+          const rows = orders.map((o) => {
+            const statusBadge = o.status === 'DELIVERED'
+              ? `✅ \`${o.status}\``
+              : o.status === 'IN_TRANSIT'
+              ? `🚚 \`${o.status}\``
+              : o.status === 'CANCELLED'
+              ? `❌ \`${o.status}\``
+              : `📦 \`${o.status}\``;
+            
+            const route = (o as any).origin && (o as any).destination ? `${(o as any).origin} &rarr; ${(o as any).destination}` : 'Domestic Transit';
+            const fee = (o as any).total_fee_inr !== undefined && (o as any).total_fee_inr !== null ? `INR ${(o as any).total_fee_inr}` : `INR ${(o as any).base_fee_inr || 350}`;
+            const service = (o as any).service_level || ((o as any).express ? 'Express Air' : 'Standard Surface');
+            return `| \`${o.order_id}\` | ${route} | ${service} | ${fee} | ${statusBadge} |`;
+          }).join('\n');
+
+          responseText = `### 📦 Shipment Orders for ${account?.account_name || targetAccountId}\n\n` +
+            `Found **${orders.length} shipment(s)** on record for \`${targetAccountId}\` (${account?.plan || 'Enterprise'} Tier):\n\n` +
+            `| Order ID | Route | Service Tier | Rate / Fee | Status |\n` +
+            `| :--- | :--- | :--- | :--- | :--- |\n` +
+            `${rows}\n\n` +
+            `💡 *To inspect a specific order, calculate cancellation fees, or verify SLA tracking, ask e.g. "Check tracking for ${orders[0].order_id}" or "Cancel order ${orders[0].order_id}".*`;
+        }
+      } catch (err: any) {
+        responseText = `Unable to retrieve orders for account **${targetAccountId}**: ${err.message}`;
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // Scenario 6C: Ticket & Inquiry History (e.g. "my tickets", "open tickets", "show tickets")
+    // ------------------------------------------------------------------------
+    else if (
+      queryLower.includes('my tickets') ||
+      queryLower.includes('my ticket') ||
+      queryLower.includes('show tickets') ||
+      queryLower.includes('list tickets') ||
+      queryLower.includes('open tickets') ||
+      queryLower.includes('my inquiries') ||
+      queryLower.includes('ticket history') ||
+      (queryLower.includes('tickets') && !queryLower.includes('close') && !queryLower.includes('resolve') && !queryLower.includes('update'))
+    ) {
+      turnCount++;
+      const acctMatch = query.match(/ACCT-\d+/i);
+      const targetAccountId = session.surface === 'customer'
+        ? session.account_id
+        : (acctMatch ? acctMatch[0].toUpperCase() : (session as any).account_id || 'ACCT-001');
+
+      try {
+        const tktRes = await dispatchToolCall(session, 'get_tickets', { account_id: targetAccountId });
+        toolTraces.push(tktRes.trace);
+
+        const accRes = await dispatchToolCall(session, 'get_account', { account_id: targetAccountId });
+        toolTraces.push(accRes.trace);
+
+        const account = accRes.result;
+        const tickets: TicketRecord[] = tktRes.result || [];
+
+        if (tickets.length === 0) {
+          responseText = `### 🎫 Support Inquiries for ${account?.account_name || targetAccountId}\n\n` +
+            `- **Account ID:** \`${targetAccountId}\`\n\n` +
+            `There are currently no active open tickets for this account. All systems are nominal.`;
+        } else {
+          const rows = tickets.map((t) => {
+            const prioBadge = t.priority === 'P1' || t.priority === 'CRITICAL'
+              ? `🔴 **${t.priority}**`
+              : t.priority === 'P2'
+              ? `🟡 **${t.priority}**`
+              : `⚪ **${t.priority}**`;
+            return `| \`${t.ticket_id}\` | ${t.subject || 'Platform Inquiry'} | ${prioBadge} | \`${t.status}\` |`;
+          }).join('\n');
+
+          responseText = `### 🎫 Active Inquiries for ${account?.account_name || targetAccountId}\n\n` +
+            `Found **${tickets.length} ticket(s)** on file for \`${targetAccountId}\`:\n\n` +
+            `| Ticket ID | Subject / Topic | Priority | Status |\n` +
+            `| :--- | :--- | :--- | :--- |\n` +
+            `${rows}\n\n` +
+            `💡 *To check SLA status or resolve an inquiry, specify the ticket ID (e.g. "Check SLA for ${tickets[0].ticket_id}").*`;
+        }
+      } catch (err: any) {
+        responseText = `Unable to retrieve tickets for account **${targetAccountId}**: ${err.message}`;
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // Scenario 6D: Account Details, Contract & Governing SLA Terms
+    // ------------------------------------------------------------------------
+    else if (
+      queryLower.includes('my account') ||
+      queryLower.includes('account details') ||
+      queryLower.includes('my contract') ||
+      queryLower.includes('my agreement') ||
+      queryLower.includes('my terms') ||
+      queryLower.includes('my plan')
+    ) {
+      turnCount++;
+      const acctMatch = query.match(/ACCT-\d+/i);
+      const targetAccountId = session.surface === 'customer'
+        ? session.account_id
+        : (acctMatch ? acctMatch[0].toUpperCase() : (session as any).account_id || 'ACCT-001');
+
+      try {
+        const accRes = await dispatchToolCall(session, 'get_account', { account_id: targetAccountId });
+        toolTraces.push(accRes.trace);
+
+        const docRes = await dispatchToolCall(session, 'search_docs', {
+          query: `contract agreement terms tier SLA for ${targetAccountId}`,
+        });
+        toolTraces.push(docRes.trace);
+        if (Array.isArray(docRes.result)) sources.push(...docRes.result);
+
+        const account = accRes.result;
+        if (!account) {
+          responseText = `Account **${targetAccountId}** was not found in the platform directory.`;
+        } else {
+          responseText = `### 🏢 Account & Contract Profile: ${account.account_name}\n\n` +
+            `- **Account ID:** \`${account.account_id}\`\n` +
+            `- **Subscription Plan:** **${account.plan} Tier**\n` +
+            `- **Dedicated CSM:** ${account.csm ? `\`${account.csm}\`` : '*Automated Dispatch Pool*'}\n` +
+            `- **Contract File:** ${account.contract_file ? `\`${account.contract_file}\` *(Signed Merchant Agreement)*` : '*Standard Platform Master Agreement*'}\n` +
+            `- **Premium 24/7 Support:** ${account.premium_support ? '✅ **Enabled (15-min P1 Target)**' : 'Standard (60-min Target)'}\n` +
+            `${account.notes ? `- **Operational Notes:** *${account.notes}*\n` : ''}\n` +
+            `*Authority: All signed customer agreements (Rank 1) strictly override platform-wide standard terms (Rank 2).*`;
+        }
+      } catch (err: any) {
+        responseText = `Unable to retrieve account profile for **${targetAccountId}**: ${err.message}`;
+      }
+    }
+
+    // ------------------------------------------------------------------------
     // Scenario 7: Cancellation Inquiry / Request
     // ------------------------------------------------------------------------
     else if (queryLower.includes('cancel') || queryLower.includes('cancellation fee')) {
@@ -830,6 +1000,62 @@ async function runDeterministicAgentTurn(
     }
 
     // ------------------------------------------------------------------------
+    // Scenario 11.5: Greetings, Introduction & Platform Capabilities
+    // ------------------------------------------------------------------------
+    else if (
+      queryLower === 'hi' ||
+      queryLower === 'hello' ||
+      queryLower === 'hey' ||
+      queryLower.startsWith('hi ') ||
+      queryLower.startsWith('hello ') ||
+      queryLower.startsWith('hey ') ||
+      queryLower === 'help' ||
+      queryLower.includes('who are you') ||
+      queryLower.includes('what can you do') ||
+      queryLower.includes('capabilities') ||
+      queryLower.includes('how to use')
+    ) {
+      const accId = (session as any).account_id || 'ACCT-001';
+      const isCust = session.surface === 'customer';
+
+      responseText = `### 👋 Hello! I am your ParcelPilot Support Copilot\n\n` +
+        `I provide instant, deterministic assistance for **${isCust ? `Account ${accId}` : 'Logistics Operations & Internal Dispatch'}**.\n\n` +
+        `**Here is how I can assist you:**\n` +
+        `- 📦 **Shipments & Orders:** Ask *"my orders"*, *"track ORD-1001"*, or *"cancel order ORD-1001"*.\n` +
+        `- 💰 **Fees & Concessions:** Ask *"cancellation fee policy"* or *"service credit eligibility"*.\n` +
+        `- ⏱️ **SLA & Escalation:** Ask *"what is our SLA?"* or report outages for instant Tier-2 paging.\n` +
+        `- 📄 **Agreements & SOPs:** Ask *"what are my agreement terms?"* or *"CSV upload limits"*.\n` +
+        `${!isCust ? `- 🛠️ **Staff Tools:** Use \`/reply\` to message customers, or \`/close\` to resolve tickets.\n` : ''}\n` +
+        `How can I help you today?`;
+    }
+
+    // ------------------------------------------------------------------------
+    // Scenario 11.6: Carrier Partnerships, Packaging & Logistics Rules
+    // ------------------------------------------------------------------------
+    else if (
+      queryLower.includes('carrier') ||
+      queryLower.includes('courier') ||
+      queryLower.includes('roadrunner') ||
+      queryLower.includes('bluedart') ||
+      queryLower.includes('packaging') ||
+      queryLower.includes('weight limit') ||
+      queryLower.includes('dimensions')
+    ) {
+      turnCount++;
+      const docRes = await dispatchToolCall(session, 'search_docs', { query });
+      toolTraces.push(docRes.trace);
+      if (Array.isArray(docRes.result)) sources.push(...docRes.result);
+
+      responseText = `### 🚚 Carrier & Logistics Guidelines\n\n` +
+        `ParcelPilot integrates with premier carrier partners across express air and surface corridors:\n\n` +
+        `- **Supported Carriers:** **SwiftShip Express**, **RoadRunner Logistics**, and **BlueDart Pro**.\n` +
+        `- **Weight & Dimensions:** Standard packages up to **30 kg** per piece. Oversized or palletized cargo requires Enterprise freight booking.\n` +
+        `- **Pickup Windows:** Standard pickup SLA is within **2 to 4 hours** of dispatch booking.\n` +
+        `- **Tracking Statuses:** \`BOOKED\` &rarr; \`PICKED_UP\` &rarr; \`IN_TRANSIT\` &rarr; \`DELIVERED\`.\n\n` +
+        `*Source: Platform Standard Logistics SOP & Carrier Integration Specs.*`;
+    }
+
+    // ------------------------------------------------------------------------
     // Scenario 12: General Query & Surface-Aware Graceful Fallback
     // ------------------------------------------------------------------------
     else {
@@ -874,17 +1100,19 @@ async function runDeterministicAgentTurn(
             `*Source: ${topDoc.title || topDoc.doc_id} (${topDoc.section}).*`;
         } else {
           if (isInternal) {
-            responseText = `### Internal Operations Assistance\n\n` +
-              `I have indexed your query against platform records and merchant agreements.\n\n` +
-              `- **Reply to Client:** Type \`/reply [message]\` to send a direct notification to the customer.\n` +
-              `- **Escalate Custody:** Type \`/escalate\` or state *"send it to operations"* to transfer ticket.\n` +
-              `- **Close Request:** Click **Resolve Request** or type \`/close\` to archive.`;
+            responseText = `### Internal Operations Guidance\n\n` +
+              `I have indexed your query against platform records, merchant agreements, and operational SOPs.\n\n` +
+              `- **Query Specific Shipment:** Ask for an order status (e.g. *"Check tracking for ORD-1001"*).\n` +
+              `- **Reply to Client:** Type \`/reply [message]\` to send a direct update to the merchant.\n` +
+              `- **Escalate Incident:** Type \`/escalate\` or state *"send to operations"* for Tier-2 failover.\n` +
+              `- **Close Inquiry:** Click **CLOSE REQUEST** or type \`/close\` to archive.`;
           } else {
-            responseText = `### Support Resolution Routing\n\n` +
-              `I could not locate an exact automated policy match for your inquiry.\n\n` +
-              `**Options to proceed:**\n` +
-              `1. **Specific Order Check:** Provide your **Order ID** (e.g. \`ORD-1001\`) or **Ticket ID** (e.g. \`TKT-501\`).\n` +
-              `2. **Human Specialist:** Reply **"Escalate to human"** to connect with our logistics operations team.`;
+            responseText = `### Support Resolution Guidance\n\n` +
+              `I am here to assist with all your shipment operations, tracking, and contractual policies.\n\n` +
+              `- **View Shipments:** Ask **"my orders"** to view all active orders and delivery status.\n` +
+              `- **View Contract & SLA:** Ask **"my agreement"** or **"what is our SLA?"**.\n` +
+              `- **Cancel or Modify:** Ask **"cancel order ORD-xxx"** or **"cancellation fee"**.\n` +
+              `- **Speak to Human:** Reply **"escalate to operations"** to connect with our dispatch team.`;
           }
         }
       }

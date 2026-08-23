@@ -15,7 +15,7 @@ export interface OrderRecord {
   order_id: string;
   account_id: string;
   carrier: 'SwiftShip' | 'RoadRunner' | 'BlueDart Pro' | string;
-  status: 'DRAFT' | 'BOOKED' | 'PICKED_UP' | 'DELIVERED' | 'CANCELLED';
+  status: 'DRAFT' | 'BOOKED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED' | string;
   booked_at?: string | null;
   pickup_window_start?: string | null;
   pickup_window_end?: string | null;
@@ -33,7 +33,8 @@ export interface TicketRecord {
   ticket_id: string;
   account_id: string;
   created_at: string;
-  status: 'open' | 'resolved' | 'closed' | 'pending';
+  status: 'open' | 'resolved' | 'closed' | 'pending' | string;
+  priority?: 'P1' | 'P2' | 'P3' | 'CRITICAL' | string;
   subject: string;
   description: string;
   channel?: 'email' | 'chat' | 'phone' | 'portal' | string | null;

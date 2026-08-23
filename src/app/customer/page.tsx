@@ -5,13 +5,18 @@ import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { CustomerSession } from '@/types';
-import { AccountRecord } from '@/db/schema';
+import { AccountRecord, TicketRecord } from '@/db/schema';
+import { MaterialIcon } from '@/components/ui/MaterialIcon';
 
 export default function CustomerChatPage() {
   const [accounts, setAccounts] = useState<AccountRecord[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('ACCT-001');
   const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [tickets, setTickets] = useState<TicketRecord[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
 
+  // Load all available accounts
   useEffect(() => {
     async function loadAccounts() {
       try {
@@ -29,6 +34,29 @@ export default function CustomerChatPage() {
     loadAccounts();
   }, []);
 
+  // Load tickets specific to the selected tenant
+  useEffect(() => {
+    async function loadTenantTickets() {
+      if (!selectedAccountId) return;
+      setLoadingTickets(true);
+      try {
+        const res = await fetch(`/api/tickets?account_id=${selectedAccountId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTickets(Array.isArray(data) ? data : []);
+        } else {
+          setTickets([]);
+        }
+      } catch (err) {
+        console.error('Failed to load tenant tickets:', err);
+        setTickets([]);
+      } finally {
+        setLoadingTickets(false);
+      }
+    }
+    loadTenantTickets();
+  }, [selectedAccountId]);
+
   const activeAccount = accounts.find((a) => a.account_id === selectedAccountId) || accounts[0] || {
     account_id: 'ACCT-001',
     account_name: 'Northstar Logistics',
@@ -44,11 +72,11 @@ export default function CustomerChatPage() {
   };
 
   const suggestedPrompts = [
+    `What are my active orders on ${activeAccount.account_id}?`,
     `Can I cancel order ${activeAccount.account_id === 'ACCT-001' ? 'ORD-1001' : 'my shipment'}? What is the cancellation fee?`,
     'What is our contractual SLA response time for P1 critical incidents?',
     'What is the maximum supported CSV limit for bulk shipment uploads?',
     'My shipment was picked up by SwiftShip but still shows BOOKED. Why?',
-    `Please cancel order ${activeAccount.account_id === 'ACCT-001' ? 'ORD-1001' : 'ORD-2001'} for me.`,
   ];
 
   return (
@@ -112,23 +140,128 @@ export default function CustomerChatPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[10px] font-bitcount text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2.5 py-0.5 rounded-full font-semibold">
-            <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>SERVER-ISOLATED TENANT</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-[#141414] hover:bg-[#1E1E1E] border border-[#262626] px-2.5 py-1 rounded-full transition"
+              title="Toggle Inquiries Sidebar"
+            >
+              <MaterialIcon name="confirmation_number" className="text-xs text-amber-400" />
+              <span>{showSidebar ? 'Hide Inquiries' : `Inquiries (${tickets.length})`}</span>
+            </button>
+
+            <div className="flex items-center gap-1.5 text-[10px] font-bitcount text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2.5 py-0.5 rounded-full font-semibold">
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              <span>SERVER-ISOLATED TENANT</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Full-width Main Chat Interface */}
-      <main className="flex-1 min-h-0 flex flex-col w-full overflow-hidden">
-        <ChatInterface
-          session={session}
-          title={`${activeAccount.account_name} Assistant`}
-          subtitle={`Account-scoped support engine for ${activeAccount.account_id}`}
-          accountId={activeAccount.account_id}
-          suggestedPrompts={suggestedPrompts}
-        />
-      </main>
+      {/* Main Body: Customer Tickets Sidebar + Chat Interface */}
+      <div className="flex-1 min-h-0 flex w-full overflow-hidden">
+        {/* Left Customer Tickets Sidebar */}
+        {showSidebar && (
+          <aside className="w-72 sm:w-80 border-r border-[#1C1C1C] bg-[#0A0A0A] flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-left-2 duration-150">
+            {/* Sidebar Header */}
+            <div className="p-3.5 border-b border-[#1A1A1A] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MaterialIcon name="support_agent" className="text-base text-zinc-300" />
+                <span className="font-bold text-xs text-white">My Inquiries</span>
+                <span className="text-[10px] font-bitcount font-bold bg-[#1A1A1A] text-zinc-400 px-1.5 py-0.2 rounded border border-[#2C2C2C]">
+                  {tickets.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Ticket List or Empty State */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {loadingTickets ? (
+                <div className="text-center py-8 text-xs text-zinc-500">
+                  <MaterialIcon name="sync" className="text-base animate-spin mb-1 text-zinc-400" />
+                  <div>Loading inquiries...</div>
+                </div>
+              ) : tickets.length > 0 ? (
+                tickets.map((tkt) => {
+                  const isP1 = tkt.priority === 'P1' || tkt.priority === 'CRITICAL';
+                  return (
+                    <div
+                      key={tkt.ticket_id}
+                      className="p-3 rounded-xl bg-[#121212] border border-[#242424] hover:border-zinc-500 transition group text-xs space-y-1.5 cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bitcount font-bold text-[11px] text-white group-hover:text-amber-300 transition">
+                          {tkt.ticket_id}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {isP1 && (
+                            <span className="text-[9px] font-bitcount font-bold px-1.5 py-0.2 rounded bg-rose-950/70 text-rose-300 border border-rose-800/80">
+                              P1 CRITICAL
+                            </span>
+                          )}
+                          <span className="text-[9px] font-bitcount px-1.5 py-0.2 rounded bg-[#1C1C1C] text-zinc-300 border border-[#2D2D2D]">
+                            {tkt.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-zinc-300 leading-snug line-clamp-2">
+                        {tkt.subject || tkt.description || 'Support Request'}
+                      </p>
+
+                      {tkt.created_at && (
+                        <div className="text-[10px] text-zinc-500 font-mono">
+                          {new Date(tkt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                /* Empty State when tenant has no open tickets */
+                <div className="text-center py-12 px-4 rounded-2xl bg-[#111111] border border-[#202020] space-y-2.5 my-auto">
+                  <div className="w-10 h-10 rounded-full bg-[#181818] border border-[#2A2A2A] flex items-center justify-center mx-auto text-zinc-400">
+                    <MaterialIcon name="inbox" className="text-xl text-zinc-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-white font-google-sans">No Active Tickets</h4>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed mt-1">
+                      Your open inquiries and support requests will be visible here. Ask a question or report an issue in the chat to start.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Links Footer */}
+            <div className="p-3 border-t border-[#1A1A1A] bg-[#0E0E0E] space-y-1.5 text-[11px]">
+              <div className="text-[10px] font-bitcount font-semibold text-zinc-500 uppercase tracking-wider">
+                QUICK ACCESS
+              </div>
+              <div className="text-[11px] text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                <MaterialIcon name="inventory_2" className="text-xs text-zinc-500" />
+                <span>Type <strong>&ldquo;my orders&rdquo;</strong> to inspect shipments</span>
+              </div>
+              <div className="text-[11px] text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                <MaterialIcon name="description" className="text-xs text-zinc-500" />
+                <span>Type <strong>&ldquo;my contract&rdquo;</strong> for SLA terms</span>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Main Chat Interface (Preserved per Tenant Key) */}
+        <main className="flex-1 min-h-0 flex flex-col w-full overflow-hidden">
+          <ChatInterface
+            key={selectedAccountId}
+            session={session}
+            title={`${activeAccount.account_name} Assistant`}
+            subtitle={`Account-scoped support engine for ${activeAccount.account_id}`}
+            accountId={activeAccount.account_id}
+            suggestedPrompts={suggestedPrompts}
+          />
+        </main>
+      </div>
     </div>
   );
 }
