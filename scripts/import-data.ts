@@ -13,10 +13,18 @@ export interface SeedData {
 export function parseExcelData(): SeedData {
   const possiblePaths = [
     path.resolve(process.cwd(), 'docs/ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(process.cwd(), 'data/ParcelPilot_Assessment_Data_populated.xlsx'),
     path.resolve(process.cwd(), 'ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(process.cwd(), 'docs/ParcelPilot_Assessment_Data.xlsx'),
+    path.resolve(process.cwd(), 'data/ParcelPilot_Assessment_Data.xlsx'),
+    path.resolve(process.cwd(), 'ParcelPilot_Assessment_Data.xlsx'),
     path.resolve(__dirname, '../docs/ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(__dirname, '../data/ParcelPilot_Assessment_Data_populated.xlsx'),
     path.resolve(__dirname, '../ParcelPilot_Assessment_Data_populated.xlsx'),
     path.resolve(__dirname, '../../ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(__dirname, '../docs/ParcelPilot_Assessment_Data.xlsx'),
+    path.resolve(__dirname, '../data/ParcelPilot_Assessment_Data.xlsx'),
+    path.resolve(__dirname, '../ParcelPilot_Assessment_Data.xlsx'),
     path.resolve(process.cwd(), '../ParcelPilot_Assessment_Data_populated.xlsx'),
   ];
 
@@ -29,12 +37,19 @@ export function parseExcelData(): SeedData {
   }
 
   if (!filePath) {
-    const seedJsonPath = path.resolve(__dirname, '../src/data/seed-data.json');
-    if (fs.existsSync(seedJsonPath)) {
-      console.log(`Excel file not found, loading fallback seed data from: ${seedJsonPath}`);
-      return JSON.parse(fs.readFileSync(seedJsonPath, 'utf8'));
+    const fallbackJsonPaths = [
+      path.resolve(process.cwd(), 'src/data/seed-data.json'),
+      path.resolve(process.cwd(), 'data/seed-data.json'),
+      path.resolve(__dirname, '../src/data/seed-data.json'),
+      path.resolve(__dirname, '../data/seed-data.json'),
+      path.resolve(__dirname, '../../src/data/seed-data.json'),
+    ];
+    for (const jsonP of fallbackJsonPaths) {
+      if (fs.existsSync(jsonP)) {
+        return JSON.parse(fs.readFileSync(jsonP, 'utf8'));
+      }
     }
-    throw new Error(`Data file "ParcelPilot_Assessment_Data_populated.xlsx" not found in search paths: ${possiblePaths.join(', ')}`);
+    return { accounts: [], orders: [], tickets: [] };
   }
 
   console.log(`Loading dataset from: ${filePath}`);

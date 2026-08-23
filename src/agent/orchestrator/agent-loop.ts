@@ -292,33 +292,62 @@ async function runDeterministicAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 1: Staff Explicit Escalation Intent (e.g. "i'll send it to operations team asap")
+    // Scenario 1: Autonomous Critical Incident Detection & Escalation Engine
     // ------------------------------------------------------------------------
     else if (
-      isInternal &&
-      (queryLower.includes('send it to operations') ||
-        queryLower.includes('send to operations') ||
-        queryLower.includes('send to ops') ||
-        queryLower.includes('send it to ops') ||
-        queryLower.includes('escalate to operations') ||
-        queryLower.includes('send to engineering'))
+      // 1. Explicit escalation requests (both Customer & Internal)
+      queryLower.includes('escalat') ||
+      queryLower.includes('send to operations') ||
+      queryLower.includes('send to ops') ||
+      queryLower.includes('send it to ops') ||
+      queryLower.includes('send it to operations') ||
+      queryLower.includes('human specialist') ||
+      queryLower.includes('talk to human') ||
+      queryLower.includes('connect with human') ||
+      queryLower.includes('connect to specialist') ||
+      queryLower.includes('page ops') ||
+      queryLower.includes('raise to ops') ||
+      queryLower.includes('raise ticket') ||
+      // 2. Autonomous Detection of Critical Failure / System Outage / Severe Incident
+      queryLower.includes('all shipment creation is failing') ||
+      queryLower.includes('shipment creation failing') ||
+      queryLower.includes('bulk validation failure') ||
+      queryLower.includes('validation failing') ||
+      queryLower.includes('system outage') ||
+      queryLower.includes('critical failure') ||
+      queryLower.includes('500 internal server error') ||
+      queryLower.includes('carrier api down') ||
+      queryLower.includes('webhook failure') ||
+      queryLower.includes('urgent delivery emergency') ||
+      queryLower.includes('production is down') ||
+      queryLower.includes('production broken') ||
+      queryLower.includes('critical error')
     ) {
       turnCount++;
+      const tktMatch = query.match(/TKT-\d+/i);
+      const targetId = tktMatch ? tktMatch[0].toUpperCase() : 'TKT-501';
+
       const propRes = await dispatchToolCall(session, 'propose_action', {
         type: 'escalation',
-        target_id: 'TKT-501',
-        reason: `Tier-1 Support (${userRole.toUpperCase()}) forwarded ticket TKT-501 to Tier-2 Operations & Engineering.`,
+        target_id: targetId,
+        reason: isInternal
+          ? `High-priority operational issue detected by AI Copilot for ${targetId}. Staged for Tier-2 Operations & Engineering.`
+          : `Critical operational issue reported by merchant (${session.account_id}). Automated handover to live support specialist.`,
       });
       toolTraces.push(propRes.trace);
       proposedAction = propRes.result;
       isEscalated = true;
 
-      responseText = `### 🚀 Operational Escalation Handover\n\n` +
-        `- **Originating Staff:** \`STAFF (${userRole.toUpperCase()})\`\n` +
-        `- **Target Department:** **Tier-2 Logistics Operations & Engineering**\n` +
-        `- **Target Ticket:** \`TKT-501\` (Northstar Logistics)\n` +
-        `- **Reason:** Platform shipment creation failure requiring dispatch route failover.\n\n` +
-        `I have queued the **Tier-2 Escalation Action Card** in the right panel. Click **Page Tier-2 Dispatch Operations** to confirm and broadcast custody transfer.`;
+      const origin = isInternal ? `STAFF (${userRole.toUpperCase()})` : `Customer (${session.account_id})`;
+      const targetDept = isInternal ? 'Tier-2 Logistics Operations & Engineering' : 'Tier-2 Priority Support Specialist';
+
+      responseText = `### 🚨 Critical Incident Detected — Autonomous Escalation Staged\n\n` +
+        `I have automatically recognized this as a **high-severity operational incident** requiring specialized technical intervention.\n\n` +
+        `- **Target Incident:** \`${targetId}\`\n` +
+        `- **Severity Classification:** **P1 Critical (Automated AI Detection)**\n` +
+        `- **Dispatch Target:** **${targetDept}**\n` +
+        `- **Originator:** \`${origin}\`\n\n` +
+        `I have prepared the **Escalation Handover Action Card** in the right panel. Click **${isInternal ? 'Page Tier-2 Dispatch Operations' : 'Connect with Live Specialist'}** to immediately transfer custody and broadcast live alerts.`;
     }
 
     // ------------------------------------------------------------------------

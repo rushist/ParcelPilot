@@ -39,9 +39,12 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data ./data
+COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/tests ./tests
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/*.xlsx ./
 
-RUN mkdir -p /app/src/data /app/data && chown -R nextjs:nodejs /app/src/data /app/data
+RUN mkdir -p /app/src/data /app/data /app/docs && chown -R nextjs:nodejs /app/src/data /app/data /app/docs
 
 USER nextjs
 

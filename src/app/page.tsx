@@ -7,8 +7,10 @@ import {
   Play,
 } from 'lucide-react';
 import { PixelBlast } from '@/components/pixelblast/PixelBlast';
+import { MaterialIcon } from '@/components/ui/MaterialIcon';
 
 export default function HomePage() {
+  const [showSignInModal, setShowSignInModal] = useState(false);
   const [stats, setStats] = useState({
     accounts: 100,
     orders: 100,
@@ -52,26 +54,20 @@ export default function HomePage() {
 
             {/* Pill Container */}
             <nav className="hidden md:flex items-center gap-5 bg-[#131313] border border-[#242424] rounded-full px-5 py-1.5 text-xs text-zinc-300 shadow-sm">
-              <Link href="/customer" className="hover:text-white font-medium transition">Layouts</Link>
+              <Link href="/customer" className="hover:text-white font-medium transition">Customer</Link>
               <Link href="/internal" className="hover:text-white font-medium transition">System</Link>
               <Link href="/internal/insights" className="hover:text-white font-medium transition">Insights</Link>
             </nav>
           </div>
 
-          {/* Right: Sign In + Open Portal Pill Button */}
-          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
-            <Link
-              href="/internal"
-              className="text-xs font-medium text-zinc-300 hover:text-white transition hidden sm:inline"
+          {/* Right: Dummy Sign In Button to Access System & Insights */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => setShowSignInModal(true)}
+              className="px-4 sm:px-5 py-1.5 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition shadow-sm shrink-0 whitespace-nowrap"
             >
               Sign In
-            </Link>
-            <Link
-              href="/customer"
-              className="px-3.5 sm:px-5 py-1.5 rounded-full bg-[#121212] hover:bg-[#1C1C1C] border border-[#2A2A2A] text-white text-xs font-semibold transition shadow-sm shrink-0 whitespace-nowrap"
-            >
-              Open Portal
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -82,9 +78,9 @@ export default function HomePage() {
           {/* Left Column: Headline & Action Buttons */}
           <div className="lg:col-span-6 p-6 sm:p-10 lg:p-14 flex flex-col justify-center space-y-6 sm:space-y-8 border-b lg:border-b-0 lg:border-r border-[#181818]">
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.08] font-google-sans break-words">
-              A baseline for <br />
-              products that <br />
-              move quickly.
+              AI infra for <br />
+              financial <br />
+              institutions.
             </h1>
 
             <div className="flex items-center gap-4 sm:gap-6 pt-2 flex-wrap">
@@ -138,7 +134,7 @@ export default function HomePage() {
           {/* Left Description */}
           <div className="lg:col-span-6 p-6 sm:p-10 lg:p-12 flex items-center">
             <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-lg font-google-sans">
-              ParcelPilot helps teams lock structure, deterministic calculations, and source contracts — so operations ship with verified claims and zero hallucinations.
+              ParcelPilot delivers deterministic AI infrastructure for financial institutions &amp; logistics networks — enforcing signed contract precedence, immutable action ledgers, and zero-hallucination calculations.
             </p>
           </div>
 
@@ -291,6 +287,74 @@ export default function HomePage() {
         <div>ParcelPilot AI Support System • Built with Next.js 14, TypeScript &amp; Qdrant</div>
         <div className="font-bitcount text-[10px] sm:text-[11px]">Source Precedence: Agreement &gt; Policy &gt; Guide</div>
       </footer>
+
+      {/* Dummy Sign In Modal to Access System & Insights */}
+      {showSignInModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-[#0F0F0F] border border-[#2A2A2A] rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 font-google-sans">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 bg-white rounded-[2px]" />
+                <h3 className="font-bold text-sm text-white">Sign In to ParcelPilot</h3>
+              </div>
+              <button onClick={() => setShowSignInModal(false)} className="text-zinc-400 hover:text-white p-1">
+                <MaterialIcon name="close" className="text-sm" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Select an authorized internal workspace to access operations copilot and real-time telemetry:
+            </p>
+
+            <div className="space-y-2.5 pt-1">
+              <Link
+                href="/internal"
+                onClick={() => setShowSignInModal(false)}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-[#161616] hover:bg-[#222222] border border-[#2D2D2D] hover:border-zinc-500 transition group text-xs text-left"
+              >
+                <div>
+                  <div className="font-semibold text-white group-hover:text-amber-300 transition flex items-center gap-1.5">
+                    <MaterialIcon name="tune" className="text-sm text-amber-400" />
+                    <span>System Operations</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">Triage inquiries, dispatch /reply, resolve tickets</div>
+                </div>
+                <MaterialIcon name="arrow_forward" className="text-sm text-zinc-500 group-hover:text-white transition" />
+              </Link>
+
+              <Link
+                href="/internal/insights"
+                onClick={() => setShowSignInModal(false)}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-[#161616] hover:bg-[#222222] border border-[#2D2D2D] hover:border-zinc-500 transition group text-xs text-left"
+              >
+                <div>
+                  <div className="font-semibold text-white group-hover:text-blue-300 transition flex items-center gap-1.5">
+                    <MaterialIcon name="query_stats" className="text-sm text-blue-400" />
+                    <span>Insights &amp; Radar</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">Topic spike discovery, SLA monitoring, security triage</div>
+                </div>
+                <MaterialIcon name="arrow_forward" className="text-sm text-zinc-500 group-hover:text-white transition" />
+              </Link>
+
+              <Link
+                href="/customer"
+                onClick={() => setShowSignInModal(false)}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-[#161616] hover:bg-[#222222] border border-[#2D2D2D] hover:border-zinc-500 transition group text-xs text-left"
+              >
+                <div>
+                  <div className="font-semibold text-white group-hover:text-emerald-300 transition flex items-center gap-1.5">
+                    <MaterialIcon name="person" className="text-sm text-emerald-400" />
+                    <span>Customer Portal</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">Self-service merchant assistance &amp; orders</div>
+                </div>
+                <MaterialIcon name="arrow_forward" className="text-sm text-zinc-500 group-hover:text-white transition" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

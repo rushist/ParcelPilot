@@ -88,11 +88,11 @@ export async function POST(req: NextRequest) {
     };
     addAccountChatMessage(accountId, userStoredMsg);
 
-    // Index staff resolution into RAG operational memory
+    // Index staff resolution into RAG operational memory and return immediately without redundant bot echo
     if (isDirectReply) {
+      const cleanMsg = message.replace(/^\/(?:reply|r)\s*/i, '').replace(/^reply:\s*/i, '').trim();
       try {
         const { learnOpsResolution } = await import('@/retrieval/operational-memory');
-        const cleanMsg = message.replace(/^\/(?:reply|r)\s*/i, '').replace(/^reply:\s*/i, '').trim();
         await learnOpsResolution({
           ticketId: 'TKT-501',
           accountId,
@@ -103,6 +103,14 @@ export async function POST(req: NextRequest) {
       } catch (memErr) {
         console.warn('Ops learning notice:', memErr);
       }
+
+      return NextResponse.json({
+        success: true,
+        message: cleanMsg,
+        tool_traces: [],
+        sources: [],
+        isDirectReply: true,
+      });
     }
 
     // 2. Execute agent loop
