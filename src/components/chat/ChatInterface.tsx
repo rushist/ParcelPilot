@@ -19,7 +19,9 @@ import {
   FileText,
   Building,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
+import { MaterialIcon } from '../ui/MaterialIcon';
 import { SessionContext } from '@/types';
 import { ToolBadge } from '../tools/ToolBadge';
 import { ConfirmationCard } from '../confirmation/ConfirmationCard';
@@ -64,6 +66,7 @@ export function ChatInterface({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPromptsMenu, setShowPromptsMenu] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
   const [hasAlert, setHasAlert] = useState(false);
 
   // Account-scoped tickets & orders state (for internal scoped investigation)
@@ -407,14 +410,17 @@ export function ChatInterface({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button
-              onClick={() => handleSendMessage('/close')}
-              className="text-xs px-3 py-1 rounded-full bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-800/80 text-emerald-300 font-bitcount font-semibold flex items-center gap-1.5 transition shadow-xs"
-              title="Close and resolve current ticket/inquiry"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">CLOSE REQUEST</span>
-            </button>
+            {/* Close Request Button: Internal Operations Only, Styled in Red with Confirmation Modal */}
+            {isInternal && (
+              <button
+                onClick={() => setShowCloseModal(true)}
+                className="text-xs px-3 py-1 rounded-full bg-rose-950/50 hover:bg-rose-900/70 border border-rose-800/80 text-rose-300 font-bitcount font-semibold flex items-center gap-1.5 transition shadow-xs hover:border-rose-600"
+                title="Close and resolve current ticket/inquiry"
+              >
+                <MaterialIcon name="close" className="text-sm text-rose-400" />
+                <span className="hidden sm:inline">CLOSE REQUEST</span>
+              </button>
+            )}
 
             <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bitcount font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -426,7 +432,7 @@ export function ChatInterface({
               className="text-zinc-400 hover:text-white transition text-xs p-1 rounded hover:bg-[#1A1A1A] flex items-center gap-1"
               title="Reset conversation"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <MaterialIcon name="restart_alt" className="text-sm text-zinc-400" />
               <span className="hidden sm:inline text-[11px] font-medium font-bitcount">RESET</span>
             </button>
           </div>
@@ -934,7 +940,7 @@ export function ChatInterface({
                   className="bg-white hover:bg-zinc-200 disabled:opacity-30 text-black px-3.5 sm:px-4 py-2 rounded-xl transition flex items-center gap-1.5 font-semibold text-xs shadow-sm shrink-0"
                 >
                   <span className="hidden sm:inline">Send</span>
-                  <Send className="w-3.5 h-3.5" />
+                  <MaterialIcon name="send" className="text-sm text-black" filled />
                 </button>
               </form>
             </div>
@@ -985,7 +991,18 @@ export function ChatInterface({
                   <ConfirmationCard
                     proposal={activeAnalysis.proposedAction}
                     session={session}
-                    onConfirmed={syncMessages}
+                    onConfirmed={async () => {
+                      await syncMessages();
+                      const prop = activeAnalysis.proposedAction;
+                      if (prop?.type === 'ticket_update') {
+                        const closedId = prop.payload?.target_id || prop.payload?.ticket_id;
+                        setAccountTickets((prev) => prev.filter((t) => t.ticket_id !== closedId));
+                        setRadarData((prev) => ({
+                          ...prev,
+                          slaItems: prev.slaItems.filter((i) => i.ticket_id !== closedId),
+                        }));
+                      }
+                    }}
                   />
                 </div>
               )}
@@ -1054,6 +1071,51 @@ export function ChatInterface({
 
         </div>
       </div>
+
+      {/* Interactive Close Request Confirmation Modal */}
+      {showCloseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-2.5 rounded-full bg-rose-950/60 border border-rose-800/80 shrink-0">
+                <MaterialIcon name="warning" className="text-xl text-rose-400" filled />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-white font-bitcount">CONFIRM CLOSE REQUEST</h3>
+                <p className="text-xs text-zinc-400 font-google-sans">Resolve and archive active inquiry from the system.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed bg-[#171717] p-3 rounded-xl border border-[#262626]">
+              Are you sure you want to close this request for <strong className="text-white">{effectiveAccountId || 'Current Tenant'}</strong>? This will remove the incident from the active SLA radar and write a final resolution audit log.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => setShowCloseModal(false)}
+                className="px-4 py-1.5 rounded-full text-xs text-zinc-400 hover:text-white bg-[#1C1C1C] hover:bg-[#252525] border border-[#333333] transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowCloseModal(false);
+                  handleSendMessage('/close');
+                  setAccountTickets((prev) => prev.filter((t) => t.ticket_id !== 'TKT-501' && (!effectiveAccountId || t.account_id !== effectiveAccountId)));
+                  setRadarData((prev) => ({
+                    ...prev,
+                    slaItems: prev.slaItems.filter((i) => i.ticket_id !== 'TKT-501' && (!effectiveAccountId || i.account_id !== effectiveAccountId)),
+                  }));
+                }}
+                className="px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-md shadow-rose-950/50 transition flex items-center gap-1.5"
+              >
+                <MaterialIcon name="check_circle" className="text-sm text-white" filled />
+                <span>Confirm & Close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

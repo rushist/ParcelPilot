@@ -142,21 +142,21 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right 3-Column Metrics */}
+          {/* Right 3-Column Metrics (Project Specific) */}
           <div className="lg:col-span-6 p-6 sm:p-10 lg:p-12 grid grid-cols-3 gap-3 sm:gap-6 items-center">
             <div>
-              <div className="text-[11px] sm:text-xs text-zinc-500 font-medium mb-1">Components</div>
-              <div className="text-2xl sm:text-4xl font-bold text-white font-google-sans">{stats.accounts}+</div>
+              <div className="text-[11px] sm:text-xs text-zinc-500 font-medium mb-1">Eval Latency</div>
+              <div className="text-2xl sm:text-4xl font-bold text-white font-google-sans">&lt; 150ms</div>
             </div>
 
             <div>
-              <div className="text-[11px] sm:text-xs text-zinc-500 font-medium mb-1">Avg. Setup</div>
-              <div className="text-2xl sm:text-4xl font-bold text-white font-google-sans">9 min</div>
+              <div className="text-[11px] sm:text-xs text-zinc-500 font-medium mb-1">Precedence</div>
+              <div className="text-xl sm:text-3xl font-bold text-white font-google-sans truncate">Rank 1-4</div>
             </div>
 
             <div>
-              <div className="text-[11px] sm:text-xs text-zinc-500 font-medium mb-1">License</div>
-              <div className="text-lg sm:text-3xl font-bold text-white font-google-sans truncate">Enterprise</div>
+              <div className="text-[11px] sm:text-xs text-zinc-500 font-medium mb-1">Action Guard</div>
+              <div className="text-xl sm:text-3xl font-bold text-white font-google-sans truncate">2-Phase</div>
             </div>
           </div>
         </div>

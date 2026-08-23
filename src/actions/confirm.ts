@@ -86,6 +86,16 @@ export async function confirmAction(
     message = `Action ${action.type} confirmed and executed.`;
   }
 
+  // Remove closed/resolved ticket from active system records
+  if (action.type === 'ticket_update') {
+    try {
+      const { deleteTicketRecord } = await import('../lib/data-store');
+      await deleteTicketRecord(targetLabel);
+    } catch (delErr) {
+      console.warn('Ticket removal notice:', delErr);
+    }
+  }
+
   // Learn and vectorize operational resolution if note/resolution is provided
   if (action.type === 'ticket_update' || action.payload.staff_note || action.payload.details?.staff_note || action.payload.reason) {
     try {

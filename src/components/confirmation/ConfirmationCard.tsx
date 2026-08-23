@@ -1,12 +1,6 @@
-'use client';
-
 import React, { useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { MaterialIcon } from '../ui/MaterialIcon';
 import { ProposedActionResponse } from '@/actions/propose';
 import { SessionContext } from '@/types';
 
@@ -96,7 +90,7 @@ export function ConfirmationCard({
 
         {proposal.requires_manager_approval && (
           <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-800/60 text-purple-200 text-[11px] flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+            <MaterialIcon name="warning" className="text-sm text-purple-400 shrink-0" filled />
             <span>High-value action (&gt;INR 1,000). Requires Manager role to confirm.</span>
           </div>
         )}
@@ -116,7 +110,7 @@ export function ConfirmationCard({
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-black" />
+                <MaterialIcon name="check_circle" className="text-sm text-black" filled />
                 <span>
                   {session.surface === 'customer'
                     ? proposal.type === 'escalation'
@@ -142,14 +136,14 @@ export function ConfirmationCard({
 
       {status === 'confirmed' && (
         <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <MaterialIcon name="check_circle" className="text-sm text-emerald-400 shrink-0" filled />
           <span className="font-medium">{resultMessage}</span>
         </div>
       )}
 
       {status === 'error' && (
         <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
-          <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <MaterialIcon name="cancel" className="text-sm text-rose-400 shrink-0" filled />
           <span className="font-medium">{resultMessage}</span>
         </div>
       )}

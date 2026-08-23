@@ -210,6 +210,29 @@ export async function getTicketById(ticketId: string): Promise<TicketRecord | nu
   return ticketsMap.get(cleanId) || null;
 }
 
+export async function deleteTicketRecord(ticketId: string): Promise<void> {
+  const cleanId = ticketId.trim().toUpperCase();
+  const dbHealth = await checkDbConnection();
+  if (dbHealth.ok) {
+    try {
+      await query('DELETE FROM tickets WHERE ticket_id = $1', [cleanId]);
+    } catch (err) {
+      console.warn('Failed to delete ticket from PostgreSQL:', err);
+    }
+  }
+
+  const { ticketsMap, ticketsByAccountMap } = getIndexedStore();
+  const existing = ticketsMap.get(cleanId);
+  if (existing) {
+    ticketsMap.delete(cleanId);
+    const accList = ticketsByAccountMap.get(existing.account_id) || [];
+    ticketsByAccountMap.set(
+      existing.account_id,
+      accList.filter((t) => t.ticket_id !== cleanId)
+    );
+  }
+}
+
 export async function getTicketsByAccount(
   accountId: string,
   filter?: { ticket_id?: string; status?: string }
@@ -220,16 +243,15 @@ export async function getTicketsByAccount(
   const dbHealth = await checkDbConnection();
   if (dbHealth.ok) {
     try {
-      let sql = 'SELECT * FROM tickets WHERE account_id = $1';
+      let sql = "SELECT * FROM tickets WHERE account_id = $1 AND status != 'closed' AND status != 'resolved'";
       const params: any[] = [cleanId];
 
       if (filter?.ticket_id) {
         params.push(filter.ticket_id);
-        sql += ` AND ticket_id = $${params.length}`;
-      }
-      if (filter?.status) {
+        sql = `SELECT * FROM tickets WHERE account_id = $1 AND ticket_id = $2`;
+      } else if (filter?.status) {
         params.push(filter.status);
-        sql += ` AND status = $${params.length}`;
+        sql = `SELECT * FROM tickets WHERE account_id = $1 AND status = $2`;
       }
       sql += ' ORDER BY created_at DESC';
       const res = await query<TicketRecord>(sql, params);
@@ -241,7 +263,9 @@ export async function getTicketsByAccount(
 
   const { ticketsByAccountMap } = getIndexedStore();
   const list = ticketsByAccountMap.get(cleanId) || [];
-  if (!filter?.ticket_id && !filter?.status) return list;
+  if (!filter?.ticket_id && !filter?.status) {
+    return list.filter((t) => t.status !== 'closed' && t.status !== 'resolved');
+  }
 
   return list.filter((t) => {
     if (filter?.ticket_id && t.ticket_id !== filter.ticket_id) return false;

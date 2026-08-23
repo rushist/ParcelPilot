@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: Auto Deploy to EC2
 
 on:
   push:
@@ -7,31 +7,17 @@ on:
 
 jobs:
   deploy:
-    name: SSH Deploy to EC2
+    name: Deploy to EC2
     runs-on: ubuntu-latest
-    # Only run deploy if EC2 secrets are configured in the GitHub repository
-    if: github.repository == 'rushist/ParcelPilot'
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Execute Remote SSH Commands on EC2
+      - name: SSH and Update EC2
         uses: appleboy/ssh-action@v1.0.3
-        continue-on-error: true
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER || 'ec2-user' }}
-          EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER || 'ec2-user' }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.EC2_USER || 'ec2-user' }}/CALQUITY || cd /home/ubuntu/CALQUITY || cd ~/CALQUITY
+            cd /home/ec2-user/CALQUITY || cd /home/ubuntu/CALQUITY || cd ~/CALQUITY
             git pull origin main
             docker-compose up -d --build
-            docker-compose exec -u root app npm run db:migrate || true
-            docker-compose exec -u root app npm run import:data || true
-            docker-compose exec -u root app npm run ingest:docs || true
-            echo "🚀 Deployment successfully completed on EC2!"
