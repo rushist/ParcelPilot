@@ -12,9 +12,11 @@ export interface SeedData {
 
 export function parseExcelData(): SeedData {
   const possiblePaths = [
-    path.resolve(__dirname, '../../ParcelPilot_Assessment_Data_populated.xlsx'),
-    path.resolve(__dirname, '../ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(process.cwd(), 'docs/ParcelPilot_Assessment_Data_populated.xlsx'),
     path.resolve(process.cwd(), 'ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(__dirname, '../docs/ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(__dirname, '../ParcelPilot_Assessment_Data_populated.xlsx'),
+    path.resolve(__dirname, '../../ParcelPilot_Assessment_Data_populated.xlsx'),
     path.resolve(process.cwd(), '../ParcelPilot_Assessment_Data_populated.xlsx'),
   ];
 
@@ -27,6 +29,11 @@ export function parseExcelData(): SeedData {
   }
 
   if (!filePath) {
+    const seedJsonPath = path.resolve(__dirname, '../src/data/seed-data.json');
+    if (fs.existsSync(seedJsonPath)) {
+      console.log(`Excel file not found, loading fallback seed data from: ${seedJsonPath}`);
+      return JSON.parse(fs.readFileSync(seedJsonPath, 'utf8'));
+    }
     throw new Error(`Data file "ParcelPilot_Assessment_Data_populated.xlsx" not found in search paths: ${possiblePaths.join(', ')}`);
   }
 

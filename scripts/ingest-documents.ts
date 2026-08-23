@@ -22,28 +22,41 @@ export interface ChunkWithEmbedding {
 export async function ingestDocuments() {
   console.log('=== Starting ParcelPilot Document Ingestion ===\n');
 
-  console.log('1. Parsing section chunks from all 6 PDF documents...');
-  const chunks = await parseDocumentSections();
-  console.log(`✔ Extracted ${chunks.length} structured sections across 6 documents.`);
+  let enrichedChunks: ChunkWithEmbedding[] = [];
 
-  console.log('\n2. Generating vector embeddings for all sections...');
-  const textsToEmbed = chunks.map((c) => `${c.title}: ${c.text}`);
-  const embeddings = await generateEmbeddingsBatch(textsToEmbed);
-  console.log(`✔ Generated ${embeddings.length} vector embeddings (dimension: ${embeddings[0].length}).`);
+  try {
+    console.log('1. Parsing section chunks from all 6 PDF documents...');
+    const chunks = await parseDocumentSections();
+    console.log(`✔ Extracted ${chunks.length} structured sections across 6 documents.`);
 
-  const enrichedChunks: ChunkWithEmbedding[] = chunks.map((c, idx) => ({
-    id: c.id,
-    doc_id: c.doc_id,
-    doc_status: c.doc_status,
-    doc_type: c.doc_type,
-    effective_date: c.effective_date || '2026-05-01',
-    account_id: c.account_id ?? null,
-    section: c.section,
-    title: c.title || c.section,
-    authority_rank: c.authority_rank,
-    text: c.text,
-    embedding: embeddings[idx],
-  }));
+    console.log('\n2. Generating vector embeddings for all sections...');
+    const textsToEmbed = chunks.map((c) => `${c.title}: ${c.text}`);
+    const embeddings = await generateEmbeddingsBatch(textsToEmbed);
+    console.log(`✔ Generated ${embeddings.length} vector embeddings (dimension: ${embeddings[0].length}).`);
+
+    enrichedChunks = chunks.map((c, idx) => ({
+      id: c.id,
+      doc_id: c.doc_id,
+      doc_status: c.doc_status,
+      doc_type: c.doc_type,
+      effective_date: c.effective_date || '2026-05-01',
+      account_id: c.account_id ?? null,
+      section: c.section,
+      title: c.title || c.section,
+      authority_rank: c.authority_rank,
+      text: c.text,
+      embedding: embeddings[idx],
+    }));
+  } catch (err: any) {
+    const fallbackPath = path.join(__dirname, '../src/data/doc-chunks.json');
+    if (fs.existsSync(fallbackPath)) {
+      console.log(`\nNotice: PDF parsing had an issue (${err.message}). Loading pre-calculated doc chunks from ${fallbackPath}...`);
+      enrichedChunks = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
+      console.log(`✔ Loaded ${enrichedChunks.length} pre-calculated chunks with embeddings.`);
+    } else {
+      throw err;
+    }
+  }
 
   // Save to static JSON cache
   const dataDir = path.join(__dirname, '../src/data');

@@ -75,9 +75,12 @@ export async function parseDocumentSections(): Promise<DocChunkRecord[]> {
 
   for (const def of DOCUMENT_DEFINITIONS) {
     const possiblePaths = [
+      path.resolve(process.cwd(), 'docs', def.fileName),
+      path.resolve(process.cwd(), def.fileName),
+      path.resolve(__dirname, '../docs', def.fileName),
+      path.resolve(__dirname, '../../docs', def.fileName),
       path.resolve(__dirname, '../../', def.fileName),
       path.resolve(__dirname, '../', def.fileName),
-      path.resolve(process.cwd(), def.fileName),
       path.resolve(process.cwd(), '../', def.fileName),
     ];
 
