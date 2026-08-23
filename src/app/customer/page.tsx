@@ -16,6 +16,13 @@ export default function CustomerChatPage() {
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
 
+  // Ticket creation modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSubject, setNewSubject] = useState('');
+  const [newPriority, setNewPriority] = useState('P2');
+  const [newDescription, setNewDescription] = useState('');
+  const [creatingTicket, setCreatingTicket] = useState(false);
+
   // Load all available accounts
   useEffect(() => {
     async function loadAccounts() {
@@ -56,6 +63,40 @@ export default function CustomerChatPage() {
     }
     loadTenantTickets();
   }, [selectedAccountId]);
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject.trim() || creatingTicket) return;
+
+    setCreatingTicket(true);
+    try {
+      const res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_id: selectedAccountId,
+          subject: newSubject.trim(),
+          priority: newPriority,
+          description: newDescription.trim() || newSubject.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.ticket) {
+        setTickets((prev) => [data.ticket, ...prev.filter((t) => t.ticket_id !== data.ticket.ticket_id)]);
+        setShowCreateModal(false);
+        setNewSubject('');
+        setNewDescription('');
+        setNewPriority('P2');
+      } else {
+        alert(data.error || 'Failed to create ticket.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Network error creating ticket.');
+    } finally {
+      setCreatingTicket(false);
+    }
+  };
 
   const activeAccount = accounts.find((a) => a.account_id === selectedAccountId) || accounts[0] || {
     account_id: 'ACCT-001',
@@ -172,6 +213,16 @@ export default function CustomerChatPage() {
                   {tickets.length}
                 </span>
               </div>
+
+              {/* Plus Button for New Request / Ticket */}
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-white hover:text-black border border-[#2D2D2D] text-zinc-300 text-xs font-semibold transition shadow-xs group"
+                title="Create new support request"
+              >
+                <MaterialIcon name="add" className="text-sm text-zinc-400 group-hover:text-black" />
+                <span className="text-[10px] font-bitcount">NEW</span>
+              </button>
             </div>
 
             {/* Ticket List or Empty State */}
@@ -262,6 +313,117 @@ export default function CustomerChatPage() {
           />
         </main>
       </div>
+
+      {/* Interactive Create Support Request Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 font-google-sans">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                  <MaterialIcon name="confirmation_number" className="text-base text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">Create New Support Request</h3>
+                  <p className="text-[11px] text-zinc-400 font-mono">{activeAccount.account_name} &bull; {activeAccount.account_id}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-zinc-400 hover:text-white p-1"
+              >
+                <MaterialIcon name="close" className="text-sm" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTicket} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+                  Subject / Issue Topic <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  placeholder="e.g. Order ORD-1003 Delayed Pickup or CSV Upload Error"
+                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-white rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+                    Priority Level
+                  </label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value)}
+                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-white rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition"
+                  >
+                    <option value="P2">P2 - High Priority</option>
+                    <option value="P1">P1 - Critical Outage</option>
+                    <option value="P3">P3 - Standard Request</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+                    Contract Plan
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={`${activeAccount.plan} Tier`}
+                    className="w-full bg-[#141414] border border-[#222222] rounded-xl px-3 py-2 text-xs text-zinc-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+                  Description &amp; Details
+                </label>
+                <textarea
+                  rows={3}
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Provide tracking numbers, error messages, or affected order IDs..."
+                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-white rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#222222]">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-1.5 rounded-full text-xs text-zinc-400 hover:text-white bg-[#1A1A1A] hover:bg-[#222222] border border-[#2F2F2F] transition font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingTicket || !newSubject.trim()}
+                  className="px-4 py-1.5 rounded-full text-xs font-semibold text-black bg-white hover:bg-zinc-200 transition shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {creatingTicket ? (
+                    <>
+                      <MaterialIcon name="sync" className="text-xs animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MaterialIcon name="send" className="text-xs" filled />
+                      <span>Submit Request</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

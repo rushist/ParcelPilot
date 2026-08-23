@@ -172,6 +172,49 @@ export async function getOrdersByAccount(
   });
 }
 
+export async function createTicketRecord(ticket: Partial<TicketRecord> & { account_id: string; subject: string }): Promise<TicketRecord> {
+  const cleanAccountId = ticket.account_id.trim().toUpperCase();
+  const ticketId = ticket.ticket_id ? ticket.ticket_id.toUpperCase() : `TKT-${Math.floor(600 + Math.random() * 399)}`;
+  const now = new Date().toISOString();
+
+  const newTicket: TicketRecord = {
+    ticket_id: ticketId,
+    account_id: cleanAccountId,
+    status: (ticket.status as any) || 'open',
+    priority: ticket.priority || 'P2',
+    subject: ticket.subject.trim(),
+    description: ticket.description ? ticket.description.trim() : ticket.subject.trim(),
+    channel: ticket.channel || 'portal',
+    assigned_to: ticket.assigned_to || null,
+    last_customer_message_at: now,
+    historical_resolution: null,
+    created_at: ticket.created_at || now,
+    updated_at: now,
+  };
+
+  const dbHealth = await checkDbConnection();
+  if (dbHealth.ok) {
+    try {
+      await query(
+        `INSERT INTO tickets (ticket_id, account_id, status, subject, description, channel, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+         ON CONFLICT (ticket_id) DO UPDATE 
+         SET status = EXCLUDED.status, subject = EXCLUDED.subject, description = EXCLUDED.description, updated_at = NOW()`,
+        [newTicket.ticket_id, newTicket.account_id, newTicket.status, newTicket.subject, newTicket.description, newTicket.channel]
+      );
+    } catch (err) {
+      console.warn('Failed to insert ticket into PostgreSQL:', err);
+    }
+  }
+
+  const { ticketsMap, ticketsByAccountMap } = getIndexedStore();
+  ticketsMap.set(ticketId, newTicket);
+  const accList = ticketsByAccountMap.get(cleanAccountId) || [];
+  ticketsByAccountMap.set(cleanAccountId, [newTicket, ...accList.filter((t) => t.ticket_id !== ticketId)]);
+
+  return newTicket;
+}
+
 export async function updateTicketRecord(ticket: TicketRecord): Promise<void> {
   const cleanId = ticket.ticket_id.trim().toUpperCase();
   const dbHealth = await checkDbConnection();

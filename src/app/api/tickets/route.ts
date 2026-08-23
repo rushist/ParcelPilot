@@ -29,3 +29,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { account_id, subject, description, priority, category } = body;
+
+    if (!account_id || !subject) {
+      return NextResponse.json({ error: 'account_id and subject are required.' }, { status: 400 });
+    }
+
+    const { createTicketRecord } = await import('@/lib/data-store');
+    const newTicket = await createTicketRecord({
+      account_id,
+      subject,
+      description: description || subject,
+      priority: priority || 'P2',
+      status: 'open',
+    });
+
+    return NextResponse.json({ success: true, ticket: newTicket });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
