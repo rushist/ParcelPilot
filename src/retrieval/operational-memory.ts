@@ -30,13 +30,13 @@ export async function learnOpsResolution(record: {
   const accountId = record.accountId || 'ACCT-001';
   const chunkId = `CHUNK-PLAYBOOK-${record.ticketId}-${Date.now().toString(36).toUpperCase()}`;
   const resolvedAt = new Date().toISOString();
-  const title = `Operational Playbook: ${record.problem.slice(0, 60)}`;
-  const text = `Incident: ${record.problem}\n\nVerified Ops Resolution Method: ${record.resolution}\n\nResolved By: ${record.operator} on ticket ${record.ticketId} at ${resolvedAt}.`;
+  let incidentProblem = record.problem;
 
-  // 1. Update ticket record in data store & DB with historical resolution
+  // 1. Update ticket record in data store & DB with historical resolution and enrich problem context
   try {
     const existingTicket = await getTicketById(record.ticketId);
     if (existingTicket) {
+      incidentProblem = `${existingTicket.subject} (${existingTicket.description})`;
       await updateTicketRecord({
         ...existingTicket,
         status: 'resolved',
@@ -47,6 +47,9 @@ export async function learnOpsResolution(record: {
   } catch (tktErr) {
     console.warn('Notice: Could not update ticket record with historical resolution:', tktErr);
   }
+
+  const title = `Operational Playbook: ${incidentProblem.slice(0, 70)}`;
+  const text = `Incident: ${incidentProblem}\n\nVerified Ops Resolution Method: ${record.resolution}\n\nResolved By: ${record.operator} on ticket ${record.ticketId} at ${resolvedAt}.`;
 
   // 2. Generate vector embedding
   const embedding = await generateEmbedding(`${title}: ${text}`);
@@ -76,11 +79,9 @@ export async function learnOpsResolution(record: {
     chunks.unshift(chunk);
     fs.writeFileSync(jsonPath, JSON.stringify(chunks, null, 2), 'utf8');
 
-    // Update in-memory cached chunks
-    const memChunks = getCachedChunks();
-    if (Array.isArray(memChunks)) {
-      memChunks.unshift(chunk);
-    }
+    // Invalidate chunk cache so search immediately picks it up
+    const { invalidateChunkCache } = await import('./search');
+    invalidateChunkCache();
   } catch (fsErr: any) {
     console.warn('Notice: Could not write to doc-chunks.json:', fsErr.message);
   }
@@ -165,15 +166,19 @@ export async function findMatchingOpsPlaybook(query: string, accountId?: string)
   snippet?: string;
 }> {
   const queryLower = query.toLowerCase();
-  const chunks = getCachedChunks();
+  const chunks = getCachedChunks(true);
   const playbooks = chunks.filter((c) => c.doc_id === 'DOC-PLAYBOOK-OPS');
 
   if (playbooks.length === 0) {
     return { matched: false };
   }
 
-  // Calculate similarity or keyword match on playbooks
-  const queryWords = queryLower.split(/[\s,.-]+/).filter((w) => w.length > 3);
+  // Filter stopwords
+  const stopwords = new Set(['what', 'is', 'the', 'how', 'to', 'fix', 'why', 'can', 'you', 'for', 'and', 'with', 'this', 'that']);
+  const queryWords = queryLower
+    .split(/[\s,.-]+/)
+    .filter((w) => w.length >= 3 && !stopwords.has(w));
+
   let bestMatch: ChunkWithEmbedding | null = null;
   let highestScore = 0;
 
@@ -183,7 +188,7 @@ export async function findMatchingOpsPlaybook(query: string, accountId?: string)
     for (const w of queryWords) {
       if (pbText.includes(w)) score += 1;
     }
-    if (score > highestScore && score >= 2) {
+    if (score > highestScore && score >= 1) {
       highestScore = score;
       bestMatch = pb;
     }

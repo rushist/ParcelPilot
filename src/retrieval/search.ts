@@ -26,14 +26,22 @@ export interface SearchResult {
 
 let cachedChunks: ChunkWithEmbedding[] | null = null;
 
-export function getCachedChunks(): ChunkWithEmbedding[] {
-  if (cachedChunks) return cachedChunks;
+export function getCachedChunks(forceReload = false): ChunkWithEmbedding[] {
+  if (cachedChunks && !forceReload) return cachedChunks;
   const jsonPath = path.join(__dirname, '../data/doc-chunks.json');
   if (fs.existsSync(jsonPath)) {
-    cachedChunks = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-    return cachedChunks!;
+    try {
+      cachedChunks = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      return cachedChunks!;
+    } catch (e) {
+      // Fallback
+    }
   }
-  return [];
+  return cachedChunks || [];
+}
+
+export function invalidateChunkCache(): void {
+  cachedChunks = null;
 }
 
 export async function searchDocuments(query: string, options: SearchOptions = {}): Promise<SearchResult[]> {

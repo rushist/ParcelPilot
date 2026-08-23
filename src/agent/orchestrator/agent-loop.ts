@@ -260,6 +260,46 @@ async function runDeterministicAgentTurn(
     }
 
     // ------------------------------------------------------------------------
+    // Scenario 0.5: Dynamic Operational Memory / Learned Playbook Suggestion
+    // ------------------------------------------------------------------------
+    else if (
+      !queryLower.startsWith('/') &&
+      !queryLower.includes('cancel') &&
+      !queryLower.includes('credit') &&
+      !queryLower.includes('sla') &&
+      !queryLower.includes('bulk upload') &&
+      !queryLower.includes('csv') &&
+      (await (async () => {
+        try {
+          const { findMatchingOpsPlaybook } = await import('../../retrieval/operational-memory');
+          const pb = await findMatchingOpsPlaybook(query, (session as any).account_id);
+          if (pb.matched && pb.snippet) {
+            responseText = `### 💡 Proven Operational Playbook (Learned from ${pb.ticketId})\n\n` +
+              `${pb.snippet}\n\n` +
+              `*Governing Authority: DOC-PLAYBOOK-OPS (Rank 3 Operational Memory).*`;
+            sources.push({
+              chunk_id: `PLAYBOOK-${pb.ticketId}`,
+              doc_id: 'DOC-PLAYBOOK-OPS',
+              doc_status: 'CURRENT',
+              doc_type: 'guide',
+              effective_date: new Date().toISOString().split('T')[0],
+              account_id: (session as any).account_id || null,
+              section: `Ops Resolution (${pb.ticketId})`,
+              title: `Learned Playbook: ${pb.problem || 'Operational Resolution'}`,
+              authority_rank: 3,
+              score: 0.95,
+              text: pb.snippet,
+            });
+            return true;
+          }
+        } catch (e) {}
+        return false;
+      })())
+    ) {
+      // Handled via operational memory
+    }
+
+    // ------------------------------------------------------------------------
     // Scenario 1: Staff Explicit Escalation Intent (e.g. "i'll send it to operations team asap")
     // ------------------------------------------------------------------------
     else if (
