@@ -179,9 +179,9 @@ export async function updateTicketRecord(ticket: TicketRecord): Promise<void> {
     try {
       await query(
         `UPDATE tickets 
-         SET status = $1, issue_type = $2, priority = $3, summary = $4, updated_at = NOW() 
+         SET status = $1, subject = $2, description = $3, historical_resolution = $4, updated_at = NOW() 
          WHERE ticket_id = $5`,
-        [ticket.status, ticket.issue_type, ticket.priority, ticket.summary, cleanId]
+        [ticket.status, ticket.subject, ticket.description, ticket.historical_resolution || null, cleanId]
       );
     } catch (err) {
       console.warn('Failed to update ticket in PostgreSQL:', err);
