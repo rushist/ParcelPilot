@@ -732,23 +732,27 @@ export function ChatInterface({
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
                             SYSTEM EXECUTION &bull; LIVE AUDIT
                           </span>
-                        ) : (m as any).isDirectReply || m.content.startsWith('/reply') || m.content.startsWith('/r ') ? (
-                          <span className="px-2 py-0.5 rounded font-bitcount text-[9px] font-bold uppercase bg-blue-950/80 text-blue-300 border border-blue-700/80 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                            {session.surface === 'customer' ? 'LIVE SUPPORT SPECIALIST DISPATCH' : 'DIRECT DISPATCH TO CLIENT'}
-                          </span>
                         ) : (
-                          <span
-                            className={`px-2 py-0.5 rounded font-bitcount text-[9px] font-bold uppercase border ${
-                              m.role === 'assistant'
-                                ? 'bg-[#151515] text-white border-[#303030]'
-                                : (m as any).role === 'staff'
-                                ? 'bg-[#161626] text-blue-300 border-[#2A2A44]'
-                                : 'bg-[#1E1E1E] text-zinc-300 border-[#333333]'
-                            }`}
-                          >
-                            {m.speakerLabel || (m.role === 'assistant' ? 'PARCELPILOT AI' : 'CUSTOMER')}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`px-2 py-0.5 rounded font-bitcount text-[9px] font-bold uppercase border ${
+                                m.role === 'assistant'
+                                  ? 'bg-[#151515] text-white border-[#303030]'
+                                  : (m as any).role === 'staff'
+                                  ? 'bg-[#161626] text-blue-300 border-[#2A2A44]'
+                                  : 'bg-[#1E1E1E] text-zinc-300 border-[#333333]'
+                              }`}
+                            >
+                              {m.speakerLabel || (m.role === 'assistant' ? (isInternal ? 'PARCELPILOT COPILOT' : 'PARCELPILOT AI') : 'CUSTOMER')}
+                            </span>
+
+                            {/* Small role badge aside copilot */}
+                            {m.role === 'assistant' && isInternal && (
+                              <span className="px-1.5 py-0.5 rounded font-bitcount text-[9px] font-bold uppercase bg-[#141420] text-blue-300 border border-blue-800/60">
+                                {((session as any).role || 'SUPPORT').toUpperCase()}
+                              </span>
+                            )}
+                          </div>
                         )}
 
                         {m.tool_traces && m.tool_traces.length > 0 && (
@@ -770,7 +774,15 @@ export function ChatInterface({
                             : 'bg-[#0F0F0F] border-[#1E1E1E]'
                         }`}
                       >
-                        <FormattedMessage content={m.content} />
+                        <FormattedMessage
+                          content={
+                            m.content.startsWith('/reply')
+                              ? m.content.replace(/^\/reply\s*/i, '')
+                              : m.content.startsWith('/r ')
+                              ? m.content.replace(/^\/r\s*/i, '')
+                              : m.content
+                          }
+                        />
                       </div>
                     </div>
                   </div>

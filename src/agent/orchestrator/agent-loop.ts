@@ -247,16 +247,8 @@ async function runDeterministicAgentTurn(
         .replace(/^\/(?:reply|r)\s*/i, '')
         .replace(/^reply(?:\s+to\s+customer)?:\s*/i, '')
         .trim();
-      const accountId = (session as any).account_id || 'ACCT-001';
-      const account = await getAccountById(accountId);
-      const accountName = account ? account.account_name : 'Northstar Logistics';
 
-      responseText = `### 📨 Direct Reply Dispatched to Client\n\n` +
-        `- **Recipient:** ${accountName} (\`${accountId}\`)\n` +
-        `- **Dispatched By:** \`STAFF (${userRole.toUpperCase()})\`\n` +
-        `- **Message Body:** *"${cleanMsg || 'We are actively investigating this issue with our logistics operations team.'}"*\n` +
-        `- **Delivery Channel:** Customer Self-Service Portal & Real-time Webhook\n` +
-        `- **Status:** ✅ Transmitted successfully to client audit feed.`;
+      responseText = cleanMsg || 'We have reviewed your request and updated the operational status.';
     }
 
     // ------------------------------------------------------------------------
