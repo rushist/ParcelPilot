@@ -394,17 +394,8 @@ export default function InternalChatPage() {
             ))}
           </div>
 
-          {/* Dedicated Actions & Dropdown Anchor */}
+          {/* Dedicated Account Switcher Anchor */}
           <div className="flex items-center gap-2 shrink-0 relative" ref={dropdownRef}>
-            <button
-              onClick={() => handleCreateNewTab()}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#141414] border border-[#262626] hover:bg-[#1E1E1E] text-zinc-300 text-xs font-medium transition shadow-2xs"
-              title="Open empty tab"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New Tab</span>
-            </button>
-
             <button
               onClick={() => setShowAccountDropdown(!showAccountDropdown)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition shadow-2xs ${

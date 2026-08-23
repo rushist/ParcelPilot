@@ -16,6 +16,9 @@ export function ConfirmationCard({
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'pending' | 'confirmed' | 'error'>('pending');
   const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [staffNote, setStaffNote] = useState<string>(
+    proposal.payload?.staff_note || proposal.payload?.reason || 'Verified resolution applied and operational note persisted.'
+  );
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -26,6 +29,7 @@ export function ConfirmationCard({
         body: JSON.stringify({
           action_id: proposal.action_id,
           session,
+          staff_note: staffNote,
         }),
       });
 
@@ -35,7 +39,7 @@ export function ConfirmationCard({
         setResultMessage(data.error || 'Failed to execute action.');
       } else {
         setStatus('confirmed');
-        setResultMessage(data.message || 'Action executed successfully.');
+        setResultMessage(data.message || 'Action executed successfully and indexed into operational memory.');
         if (onConfirmed) onConfirmed();
       }
     } catch (err: any) {
@@ -45,6 +49,18 @@ export function ConfirmationCard({
       setLoading(false);
     }
   };
+
+  const userRole = session.surface === 'internal' ? (session as any).role || 'support' : 'customer';
+  const requiresManager = !!(proposal.requires_manager_approval || proposal.payload?.target_role === 'manager' || proposal.payload?.requires_manager_approval);
+  const requiresOps = proposal.payload?.target_role === 'ops';
+
+  const isRoleAuthorized = session.surface === 'customer'
+    ? true
+    : requiresManager
+    ? userRole === 'manager'
+    : requiresOps
+    ? userRole === 'ops' || userRole === 'manager'
+    : true;
 
   const financialImpact = proposal.payload?.fee_inr !== undefined
     ? `INR ${proposal.payload.fee_inr}`
@@ -88,10 +104,45 @@ export function ConfirmationCard({
           </div>
         )}
 
-        {proposal.requires_manager_approval && (
+        {requiresManager && (
           <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-800/60 text-purple-200 text-[11px] flex items-center gap-2">
-            <MaterialIcon name="warning" className="text-sm text-purple-400 shrink-0" filled />
-            <span>High-value action (&gt;INR 1,000). Requires Manager role to confirm.</span>
+            <MaterialIcon name="shield" className="text-sm text-purple-400 shrink-0" filled />
+            <span>
+              {userRole === 'manager'
+                ? '✅ Manager role verified. You have authority to execute this high-tier action.'
+                : `⚠️ High-value / Policy requirement. Requires MANAGER role to execute (Current: ${userRole.toUpperCase()}). Switch role above to authorize.`}
+            </span>
+          </div>
+        )}
+
+        {requiresOps && userRole === 'support' && (
+          <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-200 text-[11px] flex items-center gap-2">
+            <MaterialIcon name="engineering" className="text-sm text-amber-400 shrink-0" filled />
+            <span>⚠️ Requires OPERATIONS or MANAGER role to confirm (Current: SUPPORT). Switch role above to authorize.</span>
+          </div>
+        )}
+
+        {/* Dedicated Operational Resolution & Playbook Note input for ticket closure / staff actions */}
+        {proposal.type === 'ticket_update' && status === 'pending' && (
+          <div className="space-y-1.5 pt-2 pb-1 border-t border-[#222222]">
+            <div className="flex items-center justify-between">
+              <label className="block text-[10px] font-bitcount text-amber-300 uppercase tracking-wider font-semibold">
+                RESOLUTION &amp; PLAYBOOK NOTE
+              </label>
+              <span className="text-[9px] font-bitcount text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/80">
+                AI LEARNED
+              </span>
+            </div>
+            <textarea
+              rows={3}
+              value={staffNote}
+              onChange={(e) => setStaffNote(e.target.value)}
+              placeholder="Enter the verified resolution (e.g., 'Reset webhook sync token via carrier dispatch API')..."
+              className="w-full bg-[#141414] border border-[#2A2A2A] focus:border-amber-400 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition resize-none font-google-sans leading-relaxed shadow-inner"
+            />
+            <p className="text-[10px] text-zinc-400 leading-tight">
+              💡 This resolution is automatically vectorized into RAG memory (<code>DOC-PLAYBOOK-OPS</code>) so the AI learns to propose this solution on future inquiries.
+            </p>
           </div>
         )}
       </div>
@@ -100,13 +151,22 @@ export function ConfirmationCard({
         <div className="flex items-center gap-2.5 pt-1">
           <button
             onClick={handleConfirm}
-            disabled={loading}
-            className="flex-1 py-2.5 px-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+            disabled={loading || !isRoleAuthorized}
+            className={`flex-1 py-2.5 px-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-sm ${
+              !isRoleAuthorized
+                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
+                : 'bg-white hover:bg-zinc-200 text-black'
+            }`}
           >
             {loading ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
                 <span>Processing...</span>
+              </>
+            ) : !isRoleAuthorized ? (
+              <>
+                <MaterialIcon name="lock" className="text-sm text-zinc-500" filled />
+                <span>Awaiting {requiresManager ? 'Manager' : 'Ops'} Approval</span>
               </>
             ) : (
               <>

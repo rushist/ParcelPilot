@@ -284,9 +284,41 @@ async function runDeterministicAgentTurn(
           const { findMatchingOpsPlaybook } = await import('../../retrieval/operational-memory');
           const pb = await findMatchingOpsPlaybook(query, (session as any).account_id);
           if (pb.matched && pb.snippet) {
+            const requiresManager = /manager/i.test(pb.snippet);
+            const requiresOps = /ops/i.test(pb.snippet) || /operations/i.test(pb.snippet);
+            const targetRole = requiresManager ? 'manager' : requiresOps ? 'ops' : 'support';
+
+            // If the learned solution requires an operational action proposal, stage it directly for the required party
+            if (pb.snippet.toLowerCase().includes('token') || pb.snippet.toLowerCase().includes('sync') || pb.snippet.toLowerCase().includes('reset') || pb.snippet.toLowerCase().includes('waiver') || pb.snippet.toLowerCase().includes('credit')) {
+              turnCount++;
+              const propRes = await dispatchToolCall(session, 'propose_action', {
+                type: 'ticket_update',
+                target_id: pb.ticketId || 'TKT-501',
+                reason: `Learned Playbook Execution: ${pb.snippet.slice(0, 100)}`,
+                details: {
+                  staff_note: pb.snippet,
+                  target_role: targetRole,
+                  requires_manager_approval: requiresManager,
+                },
+              });
+              toolTraces.push(propRes.trace);
+              proposedAction = propRes.result;
+            }
+
             responseText = `### 💡 Proven Operational Playbook (Learned from ${pb.ticketId})\n\n` +
               `${pb.snippet}\n\n` +
-              `*Governing Authority: DOC-PLAYBOOK-OPS (Rank 3 Operational Memory).*`;
+              `- **Required Authorization:** ${
+                requiresManager
+                  ? '⚠️ **Requires Manager Sign-Off** (Directly routed to Manager Queue)'
+                  : requiresOps
+                  ? '🛠️ **Requires Ops Verification** (Directly routed to Ops Queue)'
+                  : '✅ **Standard Support Authorization**'
+              }\n` +
+              `- **Governing Authority:** \`DOC-PLAYBOOK-OPS\` (*Rank 3 Operational Memory*).\n\n` +
+              (proposedAction
+                ? `I have staged the **Playbook Action Confirmation Card** in the right panel. It has been routed directly to the **${targetRole.toUpperCase()}** party for single-click execution.`
+                : `You can execute this verified resolution or message the customer.`);
+
             sources.push({
               chunk_id: `PLAYBOOK-${pb.ticketId}`,
               doc_id: 'DOC-PLAYBOOK-OPS',
@@ -319,6 +351,8 @@ async function runDeterministicAgentTurn(
       queryLower.includes('send to ops') ||
       queryLower.includes('send it to ops') ||
       queryLower.includes('send it to operations') ||
+      queryLower.includes('send to manager') ||
+      queryLower.includes('page manager') ||
       queryLower.includes('human specialist') ||
       queryLower.includes('talk to human') ||
       queryLower.includes('connect with human') ||
@@ -358,27 +392,41 @@ async function runDeterministicAgentTurn(
       }
       if (!targetId) targetId = 'TKT-501';
 
+      const isTargetManager = queryLower.includes('manager') || userRole === 'ops';
+      const targetRole = isTargetManager ? 'manager' : 'ops';
+      const targetDept = isTargetManager
+        ? 'Executive Operations & Engineering Management'
+        : isInternal
+        ? 'Tier-2 Logistics Operations & Dispatch'
+        : 'Tier-2 Priority Support Specialist';
+
       const propRes = await dispatchToolCall(session, 'propose_action', {
         type: 'escalation',
         target_id: targetId,
         reason: isInternal
-          ? `High-priority operational issue detected by AI Copilot for ${targetId}. Staged for Tier-2 Operations & Engineering.`
-          : `Critical operational issue reported by merchant (${session.account_id}). Automated handover to live support specialist.`,
+          ? `Incident on ${targetId} escalated by ${userRole.toUpperCase()} to ${targetRole.toUpperCase()}: ${query}`
+          : `Critical operational issue reported by customer (${session.account_id}). Automated handover to live support.`,
+        details: {
+          target_role: targetRole,
+          escalated_by: userRole,
+          requires_manager_approval: isTargetManager,
+        },
       });
       toolTraces.push(propRes.trace);
       proposedAction = propRes.result;
       isEscalated = true;
 
       const origin = isInternal ? `STAFF (${userRole.toUpperCase()})` : `Customer (${session.account_id})`;
-      const targetDept = isInternal ? 'Tier-2 Logistics Operations & Engineering' : 'Tier-2 Priority Support Specialist';
 
-      responseText = `### 🚨 Critical Incident Detected — Autonomous Escalation Staged\n\n` +
-        `I have automatically recognized this as a **high-severity operational incident** requiring specialized technical intervention.\n\n` +
+      responseText = `### 🚨 Incident Escalated to ${targetRole.toUpperCase()}\n\n` +
+        `The incident transcript has been copied and routed exclusively to the **${targetRole.toUpperCase()}** queue.\n\n` +
         `- **Target Incident:** \`${targetId}\`\n` +
-        `- **Severity Classification:** **P1 Critical (Automated AI Detection)**\n` +
-        `- **Dispatch Target:** **${targetDept}**\n` +
-        `- **Originator:** \`${origin}\`\n\n` +
-        `I have prepared the **Escalation Handover Action Card** in the right panel. Click **${isInternal ? 'Page Tier-2 Dispatch Operations' : 'Connect with Live Specialist'}** to immediately transfer custody and broadcast live alerts.`;
+        `- **Escalated To:** **${targetDept}** (\`${targetRole.toUpperCase()}\`)\n` +
+        `- **Originator:** \`${origin}\`\n` +
+        `- **Visibility Rule:** Only **${targetRole.toUpperCase()}** staff can view and act on this escalated stream.\n\n` +
+        `I have prepared the **Escalation Action Card** in the right panel. Click **${
+          isTargetManager ? 'Authorize & Handover to Manager' : 'Page Tier-2 Dispatch Operations'
+        }** to transfer custody.`;
     }
 
     // ------------------------------------------------------------------------
@@ -407,12 +455,22 @@ async function runDeterministicAgentTurn(
       }
       if (!ticketId) ticketId = 'TKT-501';
 
+      // Extract optional resolution note provided in command
+      const rawNote = query
+        .replace(/^\/(?:close|resolve)\s*/i, '')
+        .replace(/^close\s+(?:ticket|request)\s*/i, '')
+        .replace(/TKT-\d+/gi, '')
+        .replace(/^-\s*/, '')
+        .trim();
+
+      const staffNote = rawNote || 'Inquiry concluded and operations closed.';
+
       turnCount++;
       const propRes = await dispatchToolCall(session, 'propose_action', {
         type: 'ticket_update',
         target_id: ticketId,
-        reason: `Ticket ${ticketId} resolved and closed by ${isInternal ? `STAFF (${userRole.toUpperCase()})` : 'Customer'}.`,
-        details: { status: 'RESOLVED', action: 'CLOSE_TICKET' },
+        reason: staffNote,
+        details: { status: 'RESOLVED', action: 'CLOSE_TICKET', staff_note: staffNote },
       });
       toolTraces.push(propRes.trace);
       proposedAction = propRes.result;
@@ -420,8 +478,8 @@ async function runDeterministicAgentTurn(
       responseText = `### Ticket Resolution & Closure: ${ticketId}\n\n` +
         `- **Status Mutation:** \`OPEN\` &rarr; \`RESOLVED / CLOSED\`\n` +
         `- **Initiated By:** \`${isInternal ? `STAFF (${userRole.toUpperCase()})` : 'CUSTOMER'}\`\n` +
-        `- **Resolution Summary:** Inquiry concluded and operations closed.\n\n` +
-        `Please review and click **Persist Operational Note** in the right panel to confirm closure and seal the audit log.`;
+        `- **Resolution Summary:** ${staffNote}\n\n` +
+        `Please review or edit your **Resolution & Playbook Note** in the right panel and click **Persist Operational Note** to confirm closure and vectorize into operational memory.`;
     }
 
     // ------------------------------------------------------------------------

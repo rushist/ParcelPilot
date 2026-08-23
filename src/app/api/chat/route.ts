@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const accountId = searchParams.get('account_id') || 'ACCT-001';
-    const messages = getAccountChatMessages(accountId);
+    const role = searchParams.get('role') || undefined;
+    const messages = getAccountChatMessages(accountId, role);
     return NextResponse.json({ messages });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 });
@@ -116,6 +117,13 @@ export async function POST(req: NextRequest) {
     // 2. Execute agent loop
     const response = await runAgentTurn(sessionContext, message, history || []);
 
+    const isEscalationTurn = response.is_escalated || response.proposed_action?.type === 'escalation';
+    const escalatedTo = isEscalationTurn
+      ? message.toLowerCase().includes('manager') || userRole === 'ops' || response.proposed_action?.requires_manager_approval
+        ? 'manager'
+        : 'ops'
+      : undefined;
+
     // 3. Record agent response into shared chat store
     const botStoredMsg: StoredChatMessage = {
       id: `bot-${Date.now() + 1}`,
@@ -130,6 +138,9 @@ export async function POST(req: NextRequest) {
         hour12: true,
       }),
       speakerLabel: isInternal ? 'PARCELPILOT COPILOT' : 'PARCELPILOT AI',
+      isEscalation: isEscalationTurn,
+      escalated_to: escalatedTo,
+      escalated_from: isInternal ? userRole : 'customer',
       tool_traces: response.tool_traces,
       sources: response.sources,
       proposed_action: response.proposed_action,

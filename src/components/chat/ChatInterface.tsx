@@ -190,8 +190,10 @@ export function ChatInterface({
   // Real-time synchronization between Customer and Internal surfaces
   const syncMessages = async () => {
     const targetId = effectiveAccountId || 'ACCT-001';
+    const activeRole = isInternal ? (session as any).role || 'support' : undefined;
+    const roleParam = activeRole ? `&role=${activeRole}` : '';
     try {
-      const res = await fetch(`/api/chat?account_id=${targetId}`);
+      const res = await fetch(`/api/chat?account_id=${targetId}${roleParam}`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.messages)) {
@@ -215,7 +217,7 @@ export function ChatInterface({
     syncMessages();
     const interval = setInterval(syncMessages, 2500);
     return () => clearInterval(interval);
-  }, [effectiveAccountId]);
+  }, [effectiveAccountId, (session as any).role]);
 
   useEffect(() => {
     scrollToBottom();
@@ -677,6 +679,41 @@ export function ChatInterface({
 
             {/* Conversation Feed */}
             <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
+              {/* Role-Specific Escalation Queue Stream Banner */}
+              {isInternal && (session as any).role === 'manager' && (
+                <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-800/60 flex items-center justify-between text-xs text-purple-200 font-google-sans shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1 rounded-lg bg-purple-900/60 text-purple-300">
+                      <MaterialIcon name="verified_user" className="text-sm" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-white text-[11px]">Executive Escalations &amp; Approvals Stream</div>
+                      <div className="text-[10px] text-purple-300">Showing only cases escalated to Manager &amp; high-value approvals</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bitcount bg-purple-900/80 px-2.5 py-0.5 rounded-full border border-purple-600/70 font-bold text-purple-200">
+                    MANAGER QUEUE ({messages.length})
+                  </span>
+                </div>
+              )}
+
+              {isInternal && (session as any).role === 'ops' && (
+                <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800/60 flex items-center justify-between text-xs text-blue-200 font-google-sans shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1 rounded-lg bg-blue-900/60 text-blue-300">
+                      <MaterialIcon name="engineering" className="text-sm" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-white text-[11px]">Tier-2 Operations Dispatch Stream</div>
+                      <div className="text-[10px] text-blue-300">Showing only escalated operational incidents &amp; dispatch tasks</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bitcount bg-blue-900/80 px-2.5 py-0.5 rounded-full border border-blue-600/70 font-bold text-blue-200">
+                    OPS QUEUE ({messages.length})
+                  </span>
+                </div>
+              )}
+
               {/* Handover Audit Chain for Internal Surfaces */}
               {isInternal && (
                 <div className="mb-4 p-3 rounded-2xl bg-[#0D0D0D] border border-[#222222] text-xs">
