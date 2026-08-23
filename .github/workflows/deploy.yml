@@ -18,17 +18,17 @@ jobs:
 
       - name: Execute Remote SSH Commands on EC2
         uses: appleboy/ssh-action@v1.0.3
-        if: env.EC2_HOST != ''
+        continue-on-error: true
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
+          EC2_USER: ${{ secrets.EC2_USER || 'ec2-user' }}
           EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          username: ${{ secrets.EC2_USER || 'ec2-user' }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.EC2_USER || 'ubuntu' }}/CALQUITY || cd /home/ec2-user/CALQUITY
+            cd /home/${{ secrets.EC2_USER || 'ec2-user' }}/CALQUITY || cd /home/ubuntu/CALQUITY || cd ~/CALQUITY
             git pull origin main
             docker-compose up -d --build
             docker-compose exec -u root app npm run db:migrate || true
