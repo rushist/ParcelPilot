@@ -4,6 +4,7 @@ import { config } from './config';
 export const qdrantClient = new QdrantClient({
   url: config.qdrantUrl,
   apiKey: config.qdrantApiKey || undefined,
+  checkCompatibility: false,
 });
 
 export const QDRANT_DOCS_COLLECTION = 'parcelpilot_docs';

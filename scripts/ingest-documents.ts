@@ -114,7 +114,7 @@ export async function ingestDocuments() {
       const collections = await qdrantClient.getCollections();
       if (!collections.collections.some((col) => col.name === QDRANT_DOCS_COLLECTION)) {
         await qdrantClient.createCollection(QDRANT_DOCS_COLLECTION, {
-          vectors: { size: embeddings[0].length, distance: 'Cosine' },
+          vectors: { size: enrichedChunks[0]?.embedding?.length || 1536, distance: 'Cosine' },
         });
       }
 
