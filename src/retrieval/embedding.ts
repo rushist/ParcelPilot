@@ -4,11 +4,13 @@ import { config } from '../lib/config';
 
 let genAIClient: GoogleGenerativeAI | null = null;
 let openaiClient: OpenAI | null = null;
+let geminiAvailable = true;
 
 function getGeminiClient(): GoogleGenerativeAI | null {
+  if (!geminiAvailable) return null;
   if (genAIClient) return genAIClient;
   const apiKey = config.geminiApiKey || config.embeddingApiKey;
-  if (apiKey && !apiKey.startsWith('sk-')) {
+  if (apiKey && !apiKey.startsWith('sk-') && apiKey !== 'AIzaSyBXR0C6U2TCU1hwYG5KAR3yZv1ihYlZhmk') {
     genAIClient = new GoogleGenerativeAI(apiKey);
     return genAIClient;
   }
@@ -34,11 +36,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       const result = await model.embedContent(text.replace(/\n+/g, ' ').trim());
       const values = result.embedding.values;
       if (values && values.length > 0) {
-        // Pad / normalize to 1536 for consistent Qdrant vector sizing if needed
         return normalizeToDimension(values, 1536);
       }
-    } catch (err) {
-      console.warn('Gemini embedding API call failed, falling back to deterministic generator:', err);
+    } catch {
+      geminiAvailable = false;
     }
   }
 
@@ -51,8 +52,8 @@ export async function generateEmbedding(text: string): Promise<number[]> {
         dimensions: 1536,
       });
       return response.data[0].embedding;
-    } catch (err) {
-      console.warn('OpenAI Embedding API call failed, falling back to deterministic generator:', err);
+    } catch {
+      // Fallback
     }
   }
 

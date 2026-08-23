@@ -15,13 +15,13 @@ async function testOrchestrator() {
   if (!custPrompt.includes('ACCT-001') || !custPrompt.includes('Northstar Logistics')) {
     throw new Error('Customer prompt missing account context');
   }
-  console.log('  ✔ Customer system prompt generated with ACCT-001 account boundary.');
+  console.log('  [PASS] Customer system prompt generated with ACCT-001 account boundary.');
 
   const intPrompt = await getSystemPrompt(internalSession);
   if (!intPrompt.includes('Maya') || !intPrompt.includes('support')) {
     throw new Error('Internal prompt missing role context');
   }
-  console.log('  ✔ Internal system prompt generated with staff role boundary.');
+  console.log('  [PASS] Internal system prompt generated with staff role boundary.');
 
   // 2. Test Available Tools per Surface
   console.log('\n2. Testing Available Tools Filtering:');
@@ -30,14 +30,14 @@ async function testOrchestrator() {
   if (hasInsightsCustomer) {
     throw new Error('Security Breach: get_insights tool was exposed to customer surface!');
   }
-  console.log(`  ✔ Customer surface has ${custTools.length} tools (get_insights strictly excluded).`);
+  console.log(`  [PASS] Customer surface has ${custTools.length} tools (get_insights strictly excluded).`);
 
   const intTools = getAvailableToolsForSession(internalSession);
   const hasInsightsInternal = intTools.some((t) => t.name === 'get_insights');
   if (!hasInsightsInternal) {
     throw new Error('Internal surface missing get_insights tool');
   }
-  console.log(`  ✔ Internal surface has ${intTools.length} tools (includes get_insights).`);
+  console.log(`  [PASS] Internal surface has ${intTools.length} tools (includes get_insights).`);
 
   // 3. Multi-Step Execution: Northstar Cancellation
   console.log('\n3. Testing Multi-Step Tool Turn: Northstar Cancellation (ORD-1001)...');
@@ -58,7 +58,7 @@ async function testOrchestrator() {
   if (!calledCalc || !hasNorthstarSource) {
     throw new Error('Turn failed to invoke calc_cancellation_fee or cite Northstar Agreement');
   }
-  console.log('  ✔ Verified deterministic calculator called and Northstar Agreement cited.');
+  console.log('  [PASS] Verified deterministic calculator called and Northstar Agreement cited.');
 
   // 4. Action Proposal Execution
   console.log('\n4. Testing Action Proposal Turn...');
@@ -66,7 +66,7 @@ async function testOrchestrator() {
   if (!turn2.proposed_action || turn2.proposed_action.type !== 'cancellation') {
     throw new Error('Turn failed to return proposed_action object for confirmation card');
   }
-  console.log(`  ✔ Returned action draft: ${turn2.proposed_action.action_id} (Fee: ₹${turn2.proposed_action.payload.fee_inr})`);
+  console.log(`  [PASS] Returned action draft: ${turn2.proposed_action.action_id} (Fee: ₹${turn2.proposed_action.payload.fee_inr})`);
 
   // 5. Bulk Upload and Known Issues
   console.log('\n5. Testing Bulk Upload & KI-208 Knowledge Turn...');
@@ -74,7 +74,7 @@ async function testOrchestrator() {
   if (!turn3.message.includes('5,000') || !turn3.message.includes('3,000') || !turn3.message.includes('KI-208')) {
     throw new Error('Turn failed to mention 5,000 limit, 3,000 threshold, or KI-208');
   }
-  console.log('  ✔ Correctly synthesized 5,000-row product limit and KI-208 workaround.');
+  console.log('  [PASS] Correctly synthesized 5,000-row product limit and KI-208 workaround.');
 
   console.log('\n=== Module 10 Agent Orchestrator Tests Completed Successfully ===');
 }

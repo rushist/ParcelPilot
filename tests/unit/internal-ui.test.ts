@@ -16,7 +16,7 @@ async function testInternalUI() {
   if (!calledOrders) {
     throw new Error('Internal turn failed to execute cross-account get_orders query');
   }
-  console.log('  ✔ Cross-account inspection permitted for authorized internal role.');
+  console.log('  [PASS] Cross-account inspection permitted for authorized internal role.');
 
   // 2. Proactive Insights Query via Internal Chat
   console.log('\n2. Testing Proactive Insights via Internal Agent...');
@@ -26,7 +26,7 @@ async function testInternalUI() {
   if (!calledInsights) {
     throw new Error('Internal turn failed to invoke get_insights tool');
   }
-  console.log('  ✔ Proactive insights tool executed and synthesized.');
+  console.log('  [PASS] Proactive insights tool executed and synthesized.');
 
   // 3. Security Triage and Escalation
   console.log('\n3. Testing Security Triage & Action Proposal...');
@@ -34,7 +34,7 @@ async function testInternalUI() {
   if (!turn3.proposed_action || turn3.proposed_action.type !== 'escalation') {
     throw new Error('Internal turn failed to generate escalation action proposal');
   }
-  console.log(`  ✔ Escalation proposal generated: ${turn3.proposed_action.action_id} (${turn3.proposed_action.title})`);
+  console.log(`  [PASS] Escalation proposal generated: ${turn3.proposed_action.action_id} (${turn3.proposed_action.title})`);
 
   // 4. High-Value Credit Role Authorization Barrier
   console.log('\n4. Testing Role Authorization: High-Value Credit Proposal & Approval...');
@@ -48,14 +48,14 @@ async function testInternalUI() {
   if (!propCredit.result.requires_manager_approval) {
     throw new Error('Credit of INR 2500 failed to trigger manager approval flag');
   }
-  console.log('  ✔ Credit > INR 1,000 flagged for Manager Approval.');
+  console.log('  [PASS] Credit > INR 1,000 flagged for Manager Approval.');
 
   // Support attempts confirmation (Must fail)
   try {
     await executeConfirmAction(supportSession, { action_id: propCredit.result.action_id });
     throw new Error('Security Breach: Support role confirmed high-value credit.');
   } catch (err: any) {
-    console.log('  ✔ Support role blocked from confirming credit > INR 1,000.');
+    console.log('  [PASS] Support role blocked from confirming credit > INR 1,000.');
   }
 
   // Manager confirms (Must succeed)
@@ -63,7 +63,7 @@ async function testInternalUI() {
   if (confManager.result.status !== 'CONFIRMED') {
     throw new Error('Manager confirmation failed');
   }
-  console.log(`  ✔ Manager confirmed credit: ${confManager.result.message}`);
+  console.log(`  [PASS] Manager confirmed credit: ${confManager.result.message}`);
 
   console.log('\n=== Module 12 Internal Chatbot Interface Tests Completed Successfully ===');
 }

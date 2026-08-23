@@ -109,8 +109,8 @@ export function ConfirmationCard({
             <MaterialIcon name="shield" className="text-sm text-purple-400 shrink-0" filled />
             <span>
               {userRole === 'manager'
-                ? '✅ Manager role verified. You have authority to execute this high-tier action.'
-                : `⚠️ High-value / Policy requirement. Requires MANAGER role to execute (Current: ${userRole.toUpperCase()}). Switch role above to authorize.`}
+                ? 'Manager role verified. You have authority to execute this high-tier action.'
+                : `High-value / Policy requirement. Requires MANAGER role to execute (Current: ${userRole.toUpperCase()}). Switch role above to authorize.`}
             </span>
           </div>
         )}
@@ -118,7 +118,7 @@ export function ConfirmationCard({
         {requiresOps && userRole === 'support' && (
           <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-200 text-[11px] flex items-center gap-2">
             <MaterialIcon name="engineering" className="text-sm text-amber-400 shrink-0" filled />
-            <span>⚠️ Requires OPERATIONS or MANAGER role to confirm (Current: SUPPORT). Switch role above to authorize.</span>
+            <span>Requires OPERATIONS or MANAGER role to confirm (Current: SUPPORT). Switch role above to authorize.</span>
           </div>
         )}
 
@@ -141,7 +141,7 @@ export function ConfirmationCard({
               className="w-full bg-[#141414] border border-[#2A2A2A] focus:border-amber-400 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition resize-none font-google-sans leading-relaxed shadow-inner"
             />
             <p className="text-[10px] text-zinc-400 leading-tight">
-              💡 This resolution is automatically vectorized into RAG memory (<code>DOC-PLAYBOOK-OPS</code>) so the AI learns to propose this solution on future inquiries.
+              This resolution is automatically vectorized into RAG memory (<code>DOC-PLAYBOOK-OPS</code>) so the AI learns to propose this solution on future inquiries.
             </p>
           </div>
         )}

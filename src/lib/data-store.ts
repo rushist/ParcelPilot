@@ -356,3 +356,75 @@ export async function getAllOrders(): Promise<OrderRecord[]> {
   const { seed } = getIndexedStore();
   return seed.orders;
 }
+
+export async function resetDataStoreToInitial(): Promise<void> {
+  // Clear the in-memory singleton cache
+  delete globalForStore.parcelpilotStore;
+
+  // If database is connected, restore pristine seed data
+  const dbHealth = await checkDbConnection();
+  if (dbHealth.ok) {
+    try {
+      const freshSeed = parseExcelData();
+      await query('DELETE FROM tickets;');
+      await query('DELETE FROM orders;');
+      await query('DELETE FROM accounts;');
+
+      for (const a of freshSeed.accounts) {
+        await query(
+          `INSERT INTO accounts (account_id, account_name, plan, status, csm, contract_file, premium_support, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (account_id) DO UPDATE SET plan = $3, status = $4, contract_file = $6;`,
+          [a.account_id, a.account_name, a.plan, a.status, a.csm, a.contract_file, a.premium_support, a.notes]
+        );
+      }
+      for (const o of freshSeed.orders) {
+        await query(
+          `INSERT INTO orders (order_id, account_id, carrier, status, booked_at, pickup_window_start, pickup_window_end, pickup_actual_at, shipment_fee_inr, carrier_fault, customer_fault, cancellation_requested_at, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           ON CONFLICT (order_id) DO UPDATE SET status = $4;`,
+          [
+            o.order_id,
+            o.account_id,
+            o.carrier,
+            o.status,
+            o.booked_at || null,
+            o.pickup_window_start || null,
+            o.pickup_window_end || null,
+            o.pickup_actual_at || null,
+            o.shipment_fee_inr || 0,
+            o.carrier_fault || false,
+            o.customer_fault || false,
+            o.cancellation_requested_at || null,
+            o.notes || null,
+          ]
+        );
+      }
+      for (const t of freshSeed.tickets) {
+        await query(
+          `INSERT INTO tickets (ticket_id, account_id, created_at, status, priority, subject, description, channel, assigned_to, last_customer_message_at, historical_resolution)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           ON CONFLICT (ticket_id) DO UPDATE SET status = 'open';`,
+          [
+            t.ticket_id,
+            t.account_id,
+            t.created_at,
+            'open',
+            t.priority || 'P2',
+            t.subject,
+            t.description,
+            t.channel || null,
+            t.assigned_to || null,
+            t.last_customer_message_at || null,
+            t.historical_resolution || null,
+          ]
+        );
+      }
+    } catch (dbErr) {
+      console.warn('DB re-seed error:', dbErr);
+    }
+  }
+
+  // Reinitialize in-memory store
+  getIndexedStore();
+}

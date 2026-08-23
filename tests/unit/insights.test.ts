@@ -34,7 +34,7 @@ async function testInsights() {
   if (!ki211Cluster || ki211Cluster.count === 0) {
     throw new Error('Spike detection failed to discover the SwiftShip (KI-211) status delay cluster.');
   }
-  console.log('  ✔ Naturally discovered KI-208 and KI-211 clusters from real ticket text without hardcoding.');
+  console.log('  [PASS] Naturally discovered KI-208 and KI-211 clusters from real ticket text without hardcoding.');
 
   // 2. SLA Risk Detection
   console.log('\n2. Testing SLA Risk Scanner (sla_at_risk)...');
@@ -54,7 +54,7 @@ async function testInsights() {
   for (const item of slaRes.result.data.items.slice(0, 3)) {
     console.log(`  • [${item.status}] ${item.ticket_id} (${item.account_name}) - Severity: ${item.severity}, ${item.percentage_elapsed}% SLA elapsed (${item.elapsed_minutes}/${item.target_minutes}m)`);
   }
-  console.log('  ✔ Proactive SLA risk detection verified.');
+  console.log('  [PASS] Proactive SLA risk detection verified.');
 
   // 3. Known Issue Correlation
   console.log('\n3. Testing Known Issue Correlation (known_issue_correlation)...');
@@ -87,7 +87,7 @@ async function testInsights() {
       throw new Error(`Expected >5 tickets for KI-211 cluster, found ${report.affected_ticket_count}`);
     }
   }
-  console.log('  ✔ Known issue correlation successfully matched advisory symptoms to real tickets.');
+  console.log('  [PASS] Known issue correlation successfully matched advisory symptoms to real tickets.');
 
   // 4. Security Triage
   console.log('\n4. Testing Security Triage (security_triage)...');
@@ -106,7 +106,7 @@ async function testInsights() {
       }
     }
   }
-  console.log('  ✔ Security triage strictly elevated all credential/secret exposures to P1 Critical.');
+  console.log('  [PASS] Security triage strictly elevated all credential/secret exposures to P1 Critical.');
 
   // 5. Access Control Barrier on get_insights
   console.log('\n5. Testing Access Control Barrier on get_insights:');
@@ -117,7 +117,7 @@ async function testInsights() {
     throw new Error('Security Breach: Customer session was permitted to call get_insights tool.');
   } catch (err: any) {
     if (err.name === 'ForbiddenError') {
-      console.log('  ✔ Customer session strictly blocked from accessing internal insights.');
+      console.log('  [PASS] Customer session strictly blocked from accessing internal insights.');
     } else {
       throw err;
     }

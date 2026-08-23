@@ -18,7 +18,7 @@ async function testSchema() {
   for (const table of requiredTables) {
     const tableDef = `CREATE TABLE ${table}`;
     if (sql.includes(tableDef)) {
-      console.log(`  ✔ Table "${table}" defined in schema.sql`);
+      console.log(`  [PASS] Table "${table}" defined in schema.sql`);
     } else {
       throw new Error(`Table "${table}" missing from schema.sql`);
     }
@@ -36,14 +36,14 @@ async function testSchema() {
   ];
   for (const idx of requiredIndexes) {
     if (sql.includes(idx)) {
-      console.log(`  ✔ Index "${idx}" defined`);
+      console.log(`  [PASS] Index "${idx}" defined`);
     } else {
       throw new Error(`Index "${idx}" missing from schema.sql`);
     }
   }
 
   if (sql.includes('trg_doc_chunks_tsv')) {
-    console.log('  ✔ GIN tsvector trigger "trg_doc_chunks_tsv" defined');
+    console.log('  [PASS] GIN tsvector trigger "trg_doc_chunks_tsv" defined');
   } else {
     throw new Error('Full-text search trigger missing');
   }
@@ -54,9 +54,9 @@ async function testSchema() {
   if (dbHealth.ok) {
     console.log('Database connected, running full migration...');
     await runMigrations();
-    console.log('✔ Live database migration succeeded');
+    console.log('[PASS] Live database migration succeeded');
   } else {
-    console.log(`ℹ Live DB offline (${dbHealth.error}). Schema definitions verified via static parsing.`);
+    console.log(`[INFO] Live DB offline (${dbHealth.error}). Schema definitions verified via static parsing.`);
   }
 
   console.log('\n=== Module 1 Schema Test Completed Successfully ===');

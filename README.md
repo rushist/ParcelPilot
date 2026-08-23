@@ -1,47 +1,53 @@
-# ParcelPilot — Logistics AI Support & Operations Engine
+# ParcelPilot - Logistics AI Support & Operations Engine
 
-> **Deterministic, citation-grounded AI support engine for logistics operations with strict contract precedence, multi-tenant isolation, proactive incident triage, and human-in-the-loop action governance.**
+> Deterministic, citation-grounded AI support engine for logistics operations with strict contract precedence, multi-tenant isolation, proactive incident triage, and human-in-the-loop action governance.
 
 ---
 
-## 🌟 Key Highlights & Capabilities
+## Key Highlights & Capabilities
 
-- 🎯 **Deterministic Reasoner**: Financial fee and credit calculations are performed strictly by typed arithmetic engines, eliminating LLM calculation hallucinations.
-- 📜 **Authoritative Contract Precedence (Rule 9)**: Customer-specific signed agreements (*Rank 1*) take absolute precedence over standard SOPs (*Rank 2*) and product guides (*Rank 3*). Northstar (`ACCT-001`) receives contractual ₹0 cancellation fee waivers, and LumenWorks (`ACCT-002`) receives contractual ₹300 credit terms.
-- 🛡️ **Multi-Tenant Security Isolation**: Customer sessions are strictly locked to their authenticated `account_id` at the database and data-access layers. Cross-tenant queries are blocked with security telemetry.
-- ⚡ **Problem 1: Proactive Operational Insights**:
+- **Context-Aware Conversational AI Engine**: Multi-turn dialogue management with context memory across consecutive turns. Handles complex logistics queries, delivery discrepancies, payment reconciliations, and natural follow-up questions.
+- **Deterministic Reasoner**: Financial fee and credit calculations are performed strictly by typed arithmetic engines, eliminating LLM calculation hallucinations.
+- **Authoritative Contract Precedence (Rule 9)**: Customer-specific signed agreements (Rank 1) take absolute precedence over standard SOPs (Rank 2) and product guides (Rank 3). Northstar (`ACCT-001`) receives contractual zero-fee cancellation waivers, and LumenWorks (`ACCT-002`) receives contractual delay credit terms.
+- **Delivery & Payment Reconciliation Protocol**: Built-in operational diagnosis for courier electronic Proof of Delivery (ePOD) upload buffers (15-30 minute batch sync) and automatic payment settlement reconciliation.
+- **Multi-Tenant Security Isolation**: Customer sessions are strictly locked to their authenticated `account_id` at the database and data-access layers. Cross-tenant queries are blocked with security telemetry.
+- **Problem 1: Proactive Operational Insights**:
   - Live clustering across open tickets detects surge topics (Bulk CSV upload failures, SwiftShip webhook lags).
-  - Correlates known issues (**`KI-208`** and **`KI-211`**) with actionable workarounds.
+  - Correlates known issues (`KI-208` and `KI-211`) with actionable workarounds.
   - Monitors contractual SLA risk thresholds and alerts on breaches (e.g. `TKT-501` Northstar 15-minute P1 target).
-  - Enforces mandatory **Rule 15 Security Incident Protocol** on any exposed credentials.
-- 🔒 **Problem 2: Trust & Reliability Hardening**:
+  - Enforces mandatory Rule 15 Security Incident Protocol on any exposed credentials.
+- **Problem 2: Trust & Reliability Hardening**:
   - Immunity against 10 critical ambiguity, prompt injection, role privilege escalation, historical note error, and deprecated policy traps.
-- ✍️ **Two-Phase Action Governance**: State mutations (cancellations, service credits, escalations) generate interactive confirmation cards requiring explicit human approval, backed by immutable audit logs.
-- 🚀 **Modern High-Craft UI**: Dark theme aesthetic with WebGL `PixelBlast` canvas, Google Sans + Bitcount Single typography, responsive two-panel split workspaces, multi-account support tabs, and full-width widescreen charts.
+- **Two-Phase Action Governance**: State mutations (cancellations, service credits, escalations, ticket updates) generate interactive confirmation cards requiring explicit human approval, backed by immutable audit logs.
+- **Modern High-Craft UI**: Dark theme aesthetic with WebGL PixelBlast canvas, Google Sans + Bitcount Single typography, responsive split workspaces, multi-account support tabs, and full-width widescreen charts.
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## Architecture & Technology Stack
 
 | Layer | Technologies & Implementations |
 | :--- | :--- |
-| **Frontend Surface** | Next.js 14 (App Router), React 18, Tailwind CSS, Lucide Icons, Three.js (`PixelBlast` WebGL Dithering) |
+| **Frontend Surface** | Next.js 14 (App Router), React 18, Tailwind CSS, Lucide Icons, Three.js (PixelBlast WebGL Dithering) |
 | **Typography** | Google Sans, Bitcount Single |
-| **Agent Core** | Single-Agent Deterministic Function-Calling Loop (Google Gemini 1.5 Flash / Deterministic Orchestrator) |
-| **Vector Retrieval** | Qdrant Vector Database (`collections/parcelpilot_docs`), 768-dim embeddings, authority-ranked hybrid search |
+| **Agent Core** | Single-Agent Conversational Function-Calling Loop (Google Gemini / Deterministic Orchestrator) |
+| **Vector Retrieval** | Qdrant Vector Database (`collections/parcelpilot_docs`), 1536-dim embeddings, authority-ranked hybrid search |
 | **Data Storage** | PostgreSQL / SQLite relational data store with parameterized queries |
 | **Hardening** | TrapDetector Guardrail Suite, Output Secret Scrubber, Anti-DDoS Fast Rate-Limiter Middleware |
 | **Testing** | Automated Unit, Security Penetration, and End-to-End Regression Test Suite (15 Test Suites, 100% Pass Rate) |
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 CALQUITY/
 ├── scripts/
 │   ├── import-data.ts           # Excel parser for 100 accounts, 100 orders, 100 tickets
-│   └── ingest-docs.ts           # Ingests & vectorizes 6 policy documents into Qdrant
+│   ├── ingest-documents.ts      # Ingests & vectorizes 6 policy documents into Qdrant
+│   ├── test-calculators.ts      # Verifies cancellation, credit, and SLA engines
+│   ├── test-tools.ts            # Tests structured data tools
+│   ├── test-traps.ts            # Tests 10 security and policy trap scenarios
+│   └── verify-chat.ts           # End-to-end multi-turn conversation verification
 ├── src/
 │   ├── access/                  # Session scoping & multi-tenant authorization
 │   ├── actions/                 # Two-phase action proposal, confirmation & audit store
@@ -74,7 +80,7 @@ CALQUITY/
 
 ---
 
-## 🚀 Quickstart & Setup Guide
+## Quickstart & Setup Guide
 
 ### 1. Prerequisites
 - **Node.js**: v18.17+ or v20+
@@ -110,7 +116,7 @@ LLM_MODEL=gemini-1.5-flash-latest
 ```
 
 ### 4. Running the Master Test Suite
-Verify that all 15 test suites pass with 100% success:
+Verify that all test suites pass with 100% success:
 ```bash
 npx tsx tests/run-all.ts
 ```
@@ -128,34 +134,34 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 🧪 Comprehensive Verification & Test Results
+## Comprehensive Verification & Test Results
 
 ```
 ================================================================
 === FULL 15-MODULE AUTOMATED VERIFICATION SUITE RESULTS ===
 ================================================================
-  ✔ Module 0: Health Checks & Runtime Readiness Probes (100% Passed)
-  ✔ Module 1: Relational Schema & Migration Validation (100% Passed)
-  ✔ Module 2: 100 Accounts, 100 Orders, 100 Tickets Ingestion (100% Passed)
-  ✔ Module 3: 6 Authoritative Documents Vector Ingestion & Ranking (100% Passed)
-  ✔ Module 4: Multi-Tenant Access Control & Scoping (100% Passed)
-  ✔ Module 5: Typed Tool Dispatchers & Execution Tracing (100% Passed)
-  ✔ Module 6: Deterministic Cancellation, Credit & SLA Calculators (100% Passed)
-  ✔ Module 7: Qdrant Vector Search & Authority Ranking (100% Passed)
-  ✔ Module 8: Two-Phase Action Proposal & Immutable Audit Store (100% Passed)
-  ✔ Module 9: Problem 1 Operational Insights & Known Issue Clustering (100% Passed)
-  ✔ Module 10: Single-Agent Function Calling & Fallback Loop (100% Passed)
-  ✔ Module 11: Customer Chatbot Interface & Precedence Verification (100% Passed)
-  ✔ Module 12: Internal Multi-Account Operations Copilot (100% Passed)
-  ✔ Module 13: Problem 2 Trust & Reliability 10-Trap Hardening (100% Passed)
-  ✔ Module 14: Enterprise Security Penetration & Anti-DDoS Defense (100% Passed)
-  ✔ Module 15: Full 100-Account Comprehensive Regression (100% Passed)
+  [PASSED] Module 0: Health Checks & Runtime Readiness Probes (100% Passed)
+  [PASSED] Module 1: Relational Schema & Migration Validation (100% Passed)
+  [PASSED] Module 2: 100 Accounts, 100 Orders, 100 Tickets Ingestion (100% Passed)
+  [PASSED] Module 3: 6 Authoritative Documents Vector Ingestion & Ranking (100% Passed)
+  [PASSED] Module 4: Multi-Tenant Access Control & Scoping (100% Passed)
+  [PASSED] Module 5: Typed Tool Dispatchers & Execution Tracing (100% Passed)
+  [PASSED] Module 6: Deterministic Cancellation, Credit & SLA Calculators (100% Passed)
+  [PASSED] Module 7: Qdrant Vector Search & Authority Ranking (100% Passed)
+  [PASSED] Module 8: Two-Phase Action Proposal & Immutable Audit Store (100% Passed)
+  [PASSED] Module 9: Problem 1 Operational Insights & Known Issue Clustering (100% Passed)
+  [PASSED] Module 10: Single-Agent Function Calling & Fallback Loop (100% Passed)
+  [PASSED] Module 11: Customer Chatbot Interface & Precedence Verification (100% Passed)
+  [PASSED] Module 12: Internal Multi-Account Operations Copilot (100% Passed)
+  [PASSED] Module 13: Problem 2 Trust & Reliability 10-Trap Hardening (100% Passed)
+  [PASSED] Module 14: Enterprise Security Penetration & Anti-DDoS Defense (100% Passed)
+  [PASSED] Module 15: Full 100-Account Comprehensive Regression (100% Passed)
 ================================================================
 ```
 
 ---
 
-## 🔒 Security & Data Integrity Guarantees
+## Security & Data Integrity Guarantees
 
 1. **Strict Tenant Boundaries**: All read and write queries enforce `account_id` matching on customer sessions. Cross-tenant access attempts are rejected with immediate logging.
 2. **Immutable Audit Trails**: Every confirmed action generates a cryptographically indexed audit record containing actor identity, action type, before/after parameters, and execution timestamp.
@@ -164,5 +170,5 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 📖 Demonstration Guide
-For step-by-step instructions on judging and demonstrating each system feature, refer to **[`DEMO_SCRIPT.md`](./DEMO_SCRIPT.md)**.
+## Demonstration Guide
+For step-by-step instructions on evaluating each system feature, refer to **[`DEMO_SCRIPT.md`](./DEMO_SCRIPT.md)**.

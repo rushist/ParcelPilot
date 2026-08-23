@@ -519,20 +519,6 @@ export default function InternalChatPage() {
             );
           })}
         </div>
-
-        {activeTab.accountId && (
-          <button
-            onClick={() => {
-              const newTktNum = Math.floor(506 + Math.random() * 400);
-              handleOpenTicketSubTab(`TKT-${newTktNum}`, 'New Inquiry');
-            }}
-            className="flex items-center gap-1 text-[11px] font-bitcount text-zinc-400 hover:text-white bg-[#141414] hover:bg-[#1E1E1E] border border-[#2B2B2B] px-2.5 py-1 rounded-lg transition shrink-0"
-            title="Open new ticket sub-tab"
-          >
-            <MaterialIcon name="add" className="text-xs" />
-            <span className="hidden sm:inline">New Request</span>
-          </button>
-        )}
       </div>
 
       {/* Full-width Main Chat Interface */}

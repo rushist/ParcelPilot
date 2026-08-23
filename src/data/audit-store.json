@@ -61,7 +61,7 @@
         "target_id": "ORD-1001",
         "reason": "Major operational delay compensation",
         "title": "Issue Service Credit of INR 1500 for ORD-1001",
-        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T10:46:10.045Z"
     },
@@ -84,7 +84,7 @@
         "target_id": "ORD-1001",
         "reason": "Executive concession for delayed pickup",
         "title": "Issue Service Credit of INR 2500 for ORD-1001",
-        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T10:46:11.085Z"
     },
@@ -174,7 +174,7 @@
         "target_id": "ORD-1001",
         "reason": "Major operational delay compensation",
         "title": "Issue Service Credit of INR 1500 for ORD-1001",
-        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T12:49:24.306Z"
     },
@@ -242,7 +242,7 @@
         "target_id": "ORD-1001",
         "reason": "Major operational delay compensation",
         "title": "Issue Service Credit of INR 1500 for ORD-1001",
-        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T13:58:44.988Z"
     },
@@ -265,7 +265,7 @@
         "target_id": "ORD-1001",
         "reason": "Executive concession for delayed pickup",
         "title": "Issue Service Credit of INR 2500 for ORD-1001",
-        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T13:58:46.216Z"
     },
@@ -355,7 +355,7 @@
         "target_id": "ORD-1001",
         "reason": "Major operational delay compensation",
         "title": "Issue Service Credit of INR 1500 for ORD-1001",
-        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T16:15:45.427Z"
     },
@@ -378,7 +378,7 @@
         "target_id": "ORD-1001",
         "reason": "Executive concession for delayed pickup",
         "title": "Issue Service Credit of INR 2500 for ORD-1001",
-        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T16:15:47.316Z"
     },
@@ -468,7 +468,7 @@
         "target_id": "ORD-1001",
         "reason": "Major operational delay compensation",
         "title": "Issue Service Credit of INR 1500 for ORD-1001",
-        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T16:21:11.950Z"
     },
@@ -491,7 +491,7 @@
         "target_id": "ORD-1001",
         "reason": "Executive concession for delayed pickup",
         "title": "Issue Service Credit of INR 2500 for ORD-1001",
-        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). ⚠️ Requires Manager Approval (amount > INR 1,000)."
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
       },
       "confirmed_at": "2026-08-23T16:21:13.180Z"
     },
@@ -518,5 +518,366 @@
       "confirmed_at": "2026-08-23T16:21:14.447Z"
     },
     "created_at": "2026-08-23T16:21:14.447Z"
+  },
+  {
+    "id": "AUD-MT6BRNTM-R04G",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BRNTI-N6PA",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer requested cancellation before pickup.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:34:21.273Z"
+    },
+    "created_at": "2026-08-23T21:34:21.273Z"
+  },
+  {
+    "id": "AUD-MT6BSQQQ-C4T4",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BSQQK-4EQW",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer requested cancellation before pickup.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:35:11.712Z"
+    },
+    "created_at": "2026-08-23T21:35:11.712Z"
+  },
+  {
+    "id": "AUD-MT6BSQUB-0XPK",
+    "actor": "Internal User (Priya [manager])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BSQU8-Q7XC",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 2500,
+        "override_manager_reason": "Executive account manager concession",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": true,
+        "target_id": "ORD-1001",
+        "reason": "Executive concession for delayed pickup",
+        "title": "Issue Service Credit of INR 2500 for ORD-1001",
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
+      },
+      "confirmed_at": "2026-08-23T21:35:11.841Z"
+    },
+    "created_at": "2026-08-23T21:35:11.841Z"
+  },
+  {
+    "id": "AUD-MT6BSQXX-WBV7",
+    "actor": "Internal User (SupportAgent1 [support])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BSQXS-5S8T",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 400,
+        "override_manager_reason": "Carrier pickup delay concession",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": false,
+        "target_id": "ORD-1001",
+        "reason": "Carrier pickup delay compensation",
+        "title": "Issue Service Credit of INR 400 for ORD-1001",
+        "summary": "Proposed credit of INR 400 for order ORD-1001 (SOP v4 Section 2). "
+      },
+      "confirmed_at": "2026-08-23T21:35:11.971Z"
+    },
+    "created_at": "2026-08-23T21:35:11.971Z"
+  },
+  {
+    "id": "AUD-MT6BSQYU-12MP",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BSQYR-N7CC",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer cancellation requested for ORD-1001. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:35:12.005Z"
+    },
+    "created_at": "2026-08-23T21:35:12.005Z"
+  },
+  {
+    "id": "AUD-MT6BSQZC-YKEK",
+    "actor": "Internal User (ManagerPriya [manager])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BSQZ9-64C5",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 1500,
+        "override_manager_reason": "Severe logistics escalation",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": true,
+        "target_id": "ORD-1001",
+        "reason": "Major operational delay compensation",
+        "title": "Issue Service Credit of INR 1500 for ORD-1001",
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
+      },
+      "confirmed_at": "2026-08-23T21:35:12.022Z"
+    },
+    "created_at": "2026-08-23T21:35:12.022Z"
+  },
+  {
+    "id": "AUD-MT6BU5PK-5KFG",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BU5PE-5JUF",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer requested cancellation before pickup.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:36:17.766Z"
+    },
+    "created_at": "2026-08-23T21:36:17.766Z"
+  },
+  {
+    "id": "AUD-MT6BU5ST-VQ4X",
+    "actor": "Internal User (Priya [manager])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BU5SQ-5Z0U",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 2500,
+        "override_manager_reason": "Executive account manager concession",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": true,
+        "target_id": "ORD-1001",
+        "reason": "Executive concession for delayed pickup",
+        "title": "Issue Service Credit of INR 2500 for ORD-1001",
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
+      },
+      "confirmed_at": "2026-08-23T21:36:17.884Z"
+    },
+    "created_at": "2026-08-23T21:36:17.884Z"
+  },
+  {
+    "id": "AUD-MT6BU5VS-RSCT",
+    "actor": "Internal User (SupportAgent1 [support])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BU5VP-79GI",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 400,
+        "override_manager_reason": "Carrier pickup delay concession",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": false,
+        "target_id": "ORD-1001",
+        "reason": "Carrier pickup delay compensation",
+        "title": "Issue Service Credit of INR 400 for ORD-1001",
+        "summary": "Proposed credit of INR 400 for order ORD-1001 (SOP v4 Section 2). "
+      },
+      "confirmed_at": "2026-08-23T21:36:17.991Z"
+    },
+    "created_at": "2026-08-23T21:36:17.991Z"
+  },
+  {
+    "id": "AUD-MT6BU5WT-F8U3",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BU5WR-3FCH",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer cancellation requested for ORD-1001. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:36:18.028Z"
+    },
+    "created_at": "2026-08-23T21:36:18.028Z"
+  },
+  {
+    "id": "AUD-MT6BU5WZ-E4V3",
+    "actor": "Internal User (ManagerPriya [manager])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BU5WX-M0JH",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 1500,
+        "override_manager_reason": "Severe logistics escalation",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": true,
+        "target_id": "ORD-1001",
+        "reason": "Major operational delay compensation",
+        "title": "Issue Service Credit of INR 1500 for ORD-1001",
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). [WARNING] Requires Manager Approval (amount > INR 1,000)."
+      },
+      "confirmed_at": "2026-08-23T21:36:18.034Z"
+    },
+    "created_at": "2026-08-23T21:36:18.034Z"
+  },
+  {
+    "id": "AUD-MT6BYQNR-FKI9",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BYQNN-8FT5",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer requested cancellation before pickup.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:39:51.542Z"
+    },
+    "created_at": "2026-08-23T21:39:51.542Z"
+  },
+  {
+    "id": "AUD-MT6BYQRF-3A59",
+    "actor": "Internal User (Priya [manager])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BYQRB-AS7E",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 2500,
+        "override_manager_reason": "Executive account manager concession",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": true,
+        "target_id": "ORD-1001",
+        "reason": "Executive concession for delayed pickup",
+        "title": "Issue Service Credit of INR 2500 for ORD-1001",
+        "summary": "Proposed credit of INR 2500 for order ORD-1001 (SOP v4 Section 2). Requires Manager Approval (amount > INR 1,000)."
+      },
+      "confirmed_at": "2026-08-23T21:39:51.673Z"
+    },
+    "created_at": "2026-08-23T21:39:51.673Z"
+  },
+  {
+    "id": "AUD-MT6BYQUD-KARG",
+    "actor": "Internal User (SupportAgent1 [support])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BYQUA-AC7U",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 400,
+        "override_manager_reason": "Carrier pickup delay concession",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": false,
+        "target_id": "ORD-1001",
+        "reason": "Carrier pickup delay compensation",
+        "title": "Issue Service Credit of INR 400 for ORD-1001",
+        "summary": "Proposed credit of INR 400 for order ORD-1001 (SOP v4 Section 2). "
+      },
+      "confirmed_at": "2026-08-23T21:39:51.780Z"
+    },
+    "created_at": "2026-08-23T21:39:51.780Z"
+  },
+  {
+    "id": "AUD-MT6BYQV7-XJLB",
+    "actor": "Customer (ACCT-001)",
+    "action": "CONFIRM_CANCELLATION",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BYQV4-QFYZ",
+      "type": "cancellation",
+      "payload": {
+        "order_id": "ORD-1001",
+        "fee_inr": 0,
+        "policy": "Northstar Enterprise Agreement Section 2",
+        "target_id": "ORD-1001",
+        "reason": "Customer cancellation requested for ORD-1001. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2.",
+        "title": "Cancel Shipment ORD-1001",
+        "summary": "Proposed cancellation of order ORD-1001 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+        "requires_manager_approval": false
+      },
+      "confirmed_at": "2026-08-23T21:39:51.810Z"
+    },
+    "created_at": "2026-08-23T21:39:51.810Z"
+  },
+  {
+    "id": "AUD-MT6BYQVO-HVT6",
+    "actor": "Internal User (ManagerPriya [manager])",
+    "action": "CONFIRM_SERVICE_CREDIT",
+    "account_id": "ACCT-001",
+    "payload": {
+      "action_id": "ACT-MT6BYQVL-R7HO",
+      "type": "service_credit",
+      "payload": {
+        "amount_inr": 1500,
+        "override_manager_reason": "Severe logistics escalation",
+        "order_id": "ORD-1001",
+        "policy": "SOP v4 Section 2",
+        "requires_manager_approval": true,
+        "target_id": "ORD-1001",
+        "reason": "Major operational delay compensation",
+        "title": "Issue Service Credit of INR 1500 for ORD-1001",
+        "summary": "Proposed credit of INR 1500 for order ORD-1001 (SOP v4 Section 2). Requires Manager Approval (amount > INR 1,000)."
+      },
+      "confirmed_at": "2026-08-23T21:39:51.827Z"
+    },
+    "created_at": "2026-08-23T21:39:51.827Z"
   }
 ]

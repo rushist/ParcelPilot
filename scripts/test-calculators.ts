@@ -84,7 +84,7 @@ export async function runCalculatorRegressionReport() {
   console.log(`- Severity Tiers: P1 (${p1Tickets}), P2 (${p2Tickets}), P3 (${p3Tickets})`);
   console.log(`- SLA Compliance: Within SLA (${withinSla}), At Risk >=80% (${atRiskSla}), Breached (${breachedSla})`);
 
-  console.log('\n✔ Calculator regression evaluation completed successfully.');
+  console.log('\n[PASS] Calculator regression evaluation completed successfully.');
 }
 
 if (require.main === module) {

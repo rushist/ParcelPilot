@@ -143,7 +143,7 @@ export async function importData() {
     JSON.stringify({ accounts, orders, tickets }, null, 2),
     'utf8'
   );
-  console.log(`✔ Normalized seed data saved to src/data/seed-data.json`);
+  console.log(`[PASS] Normalized seed data saved to src/data/seed-data.json`);
 
   // Insert into PostgreSQL if connected
   const dbHealth = await checkDbConnection();
@@ -211,7 +211,7 @@ export async function importData() {
       }
 
       await client.query('COMMIT');
-      console.log(`✔ Successfully inserted 100 accounts, 100 orders, and 100 tickets into PostgreSQL.`);
+      console.log(`[PASS] Successfully inserted 100 accounts, 100 orders, and 100 tickets into PostgreSQL.`);
     } catch (err) {
       await client.query('ROLLBACK');
       console.error('Database insertion error:', err);
@@ -220,7 +220,7 @@ export async function importData() {
       client.release();
     }
   } else {
-    console.log(`ℹ PostgreSQL offline (${dbHealth.error}). Data indexed and ready in seed cache.`);
+    console.log(`[INFO] PostgreSQL offline (${dbHealth.error}). Data indexed and ready in seed cache.`);
   }
 
   console.log('\n=== Data Import Completed Successfully ===');

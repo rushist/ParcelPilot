@@ -100,7 +100,7 @@ export async function proposeAction(
 
     title = `Issue Service Credit of INR ${creditAmount} for ${order.order_id}`;
     summary = `Proposed credit of INR ${creditAmount} for order ${order.order_id} (${calc.policy_applied}). ${
-      requiresManagerApproval ? '⚠️ Requires Manager Approval (amount > INR 1,000).' : ''
+      requiresManagerApproval ? 'Requires Manager Approval (amount > INR 1,000).' : ''
     }`;
     parsedDetails = {
       ...parsedDetails,

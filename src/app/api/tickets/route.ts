@@ -76,25 +76,82 @@ function triageTicketPriority(subject: string, description: string = ''): 'P1' |
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { account_id, subject, description, priority } = body;
+    const { account_id, subject, description } = body;
 
     if (!account_id || !subject) {
       return NextResponse.json({ error: 'account_id and subject are required.' }, { status: 400 });
     }
 
     // AI determines the actual priority level based on incident severity and SOP policy
-    const autoPriority = priority || triageTicketPriority(subject, description);
+    const autoPriority = triageTicketPriority(subject, description);
 
-    const { createTicketRecord } = await import('@/lib/data-store');
+    const { createTicketRecord, getAccountById } = await import('@/lib/data-store');
+    const { addAccountChatMessage } = await import('@/lib/chat-store');
+
+    const account = await getAccountById(account_id);
+    const plan = account?.plan?.toLowerCase() || 'enterprise';
+
+    const slaMinutes = plan === 'enterprise'
+      ? (autoPriority === 'P1' ? 15 : autoPriority === 'P2' ? 60 : 240)
+      : plan === 'growth'
+      ? (autoPriority === 'P1' ? 30 : autoPriority === 'P2' ? 120 : 480)
+      : (autoPriority === 'P1' ? 60 : autoPriority === 'P2' ? 240 : 1440);
+
+    const refinedAssessment = autoPriority === 'P1'
+      ? `Critical service degradation/outage detected: "${subject}". Triaged with maximum priority under Rank 1 SLA Precedence.`
+      : autoPriority === 'P2'
+      ? `Operational delay / carrier dispatch latency: "${subject}". Triaged for active investigation.`
+      : `Standard merchant inquiry: "${subject}".`;
+
     const newTicket = await createTicketRecord({
       account_id,
-      subject,
-      description: description || subject,
+      subject: subject.trim(),
+      description: description ? description.trim() : subject.trim(),
       priority: autoPriority,
       status: 'open',
     });
 
-    return NextResponse.json({ success: true, ticket: newTicket });
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    // Auto-seed user opening message in this ticket's isolated thread
+    addAccountChatMessage(account_id, {
+      id: `usr-${Date.now()}`,
+      account_id,
+      ticket_id: newTicket.ticket_id,
+      role: 'user',
+      content: description && description.trim() !== subject.trim()
+        ? `**${subject.trim()}**\n\n${description.trim()}`
+        : subject.trim(),
+      timestamp: now.toISOString(),
+      timeLabel,
+      speakerLabel: account_id === 'ACCT-001' ? 'NORTHSTAR (ACCT-001)' : `${account_id} CUSTOMER`,
+    }, newTicket.ticket_id);
+
+    // Auto-seed assistant acknowledgment in this ticket's isolated thread
+    addAccountChatMessage(account_id, {
+      id: `bot-${Date.now() + 1}`,
+      account_id,
+      ticket_id: newTicket.ticket_id,
+      role: 'assistant',
+      content: `### Support Inquiry Registered (${newTicket.ticket_id})\n\nI have registered your inquiry and am reviewing the shipment details. How can I help you with this order?`,
+      timestamp: new Date().toISOString(),
+      timeLabel,
+      speakerLabel: 'PARCELPILOT AI',
+    }, newTicket.ticket_id);
+
+    return NextResponse.json({
+      success: true,
+      ticket: newTicket,
+      evaluated_priority: autoPriority,
+      sla_minutes: slaMinutes,
+      refined_assessment: refinedAssessment,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

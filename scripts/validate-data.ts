@@ -120,9 +120,9 @@ export function runDataValidation() {
   console.log(`- Historical Notes:   ${report.summary.historicalResolutionsCount} tickets with resolution context`);
 
   if (report.isValid) {
-    console.log('\n✔ All 300 records validated successfully. Zero orphans, zero duplicates, zero dropped columns.');
+    console.log('\n[PASS] All 300 records validated successfully. Zero orphans, zero duplicates, zero dropped columns.');
   } else {
-    console.error(`\n❌ Validation Failed with ${report.errors.length} errors:`);
+    console.error(`\n[FAIL] Validation Failed with ${report.errors.length} errors:`);
     for (const err of report.errors) {
       console.error(`  - ${err}`);
     }

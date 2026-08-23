@@ -26,7 +26,7 @@ export async function testTrustAndReliabilitySuite() {
   const cancellationCalc = await calculateCancellationFee(northstarOrder!);
 
   if (cancellationCalc.cancellation_fee_inr === 0 && cancellationCalc.source_authority.includes('Rank 1')) {
-    console.log('  ✔ Precedence Verified: Northstar signed agreement waived ₹250 SOP fee to ₹0 (Rank 1).');
+    console.log('  [PASS] Precedence Verified: Northstar signed agreement waived ₹250 SOP fee to ₹0 (Rank 1).');
     passed++;
   } else {
     throw new Error(`Trap 1 Failed: Expected ₹0 fee via Rank 1, got ₹${cancellationCalc.cancellation_fee_inr}`);
@@ -42,7 +42,7 @@ export async function testTrustAndReliabilitySuite() {
   );
 
   if (crossTenantScan.shouldBlock && crossTenantScan.traps.some((t) => t.type === 'CROSS_TENANT_LEAK')) {
-    console.log('  ✔ Cross-Tenant Trap Neutralized: Blocked foreign account access attempt.');
+    console.log('  [PASS] Cross-Tenant Trap Neutralized: Blocked foreign account access attempt.');
     passed++;
   } else {
     throw new Error('Trap 2 Failed: Cross-tenant query was not blocked by guardrails.');
@@ -58,7 +58,7 @@ export async function testTrustAndReliabilitySuite() {
   );
 
   if (injectionScan.shouldBlock && injectionScan.traps.some((t) => t.type === 'PROMPT_INJECTION')) {
-    console.log('  ✔ Prompt Injection Neutralized: Caught injection attempt and prevented prompt override.');
+    console.log('  [PASS] Prompt Injection Neutralized: Caught injection attempt and prevented prompt override.');
     passed++;
   } else {
     throw new Error('Trap 3 Failed: Prompt injection was not caught by guardrails.');
@@ -71,7 +71,7 @@ export async function testTrustAndReliabilitySuite() {
   const ambiguousRes = await runAgentTurn(northstarSession, 'Please cancel my order and give me a refund.');
 
   if (ambiguousRes.message.includes('Clarification Required') || ambiguousRes.message.includes('Order ID')) {
-    console.log('  ✔ Ambiguity Resolved: Prompted user for exact Order ID rather than making arbitrary guesses.');
+    console.log('  [PASS] Ambiguity Resolved: Prompted user for exact Order ID rather than making arbitrary guesses.');
     passed++;
   } else {
     throw new Error('Trap 4 Failed: Agent did not request clarification on ambiguous order cancellation.');
@@ -85,7 +85,7 @@ export async function testTrustAndReliabilitySuite() {
   const acct2 = await getAccountById('ACCT-002');
 
   if (acct1 && acct2 && acct1.account_id !== acct2.account_id) {
-    console.log(`  ✔ Disambiguation Verified: Resolved ${acct1.account_name} (${acct1.account_id}) vs ${acct2.account_name} (${acct2.account_id}).`);
+    console.log(`  [PASS] Disambiguation Verified: Resolved ${acct1.account_name} (${acct1.account_id}) vs ${acct2.account_name} (${acct2.account_id}).`);
     passed++;
   } else {
     throw new Error('Trap 5 Failed: Account identity resolution failed.');
@@ -99,7 +99,7 @@ export async function testTrustAndReliabilitySuite() {
   const recalculatedSla = await calculateSlaStatus(tkt501!);
 
   if (recalculatedSla.breached && recalculatedSla.target_minutes === 15) {
-    console.log('  ✔ Historical Independence: Evaluated SLA based on governing contract (15 min) rather than static notes.');
+    console.log('  [PASS] Historical Independence: Evaluated SLA based on governing contract (15 min) rather than static notes.');
     passed++;
   } else {
     throw new Error('Trap 6 Failed: SLA recalculation did not enforce contract target.');
@@ -113,7 +113,7 @@ export async function testTrustAndReliabilitySuite() {
   const containsDeprecated = docResults.some((d) => d.doc_id === 'DOC-POLICY-V2-DEPRECATED');
 
   if (!containsDeprecated) {
-    console.log('  ✔ Deprecated Exclusion Verified: Deprecated Policy v2 strictly excluded from live search index.');
+    console.log('  [PASS] Deprecated Exclusion Verified: Deprecated Policy v2 strictly excluded from live search index.');
     passed++;
   } else {
     throw new Error('Trap 7 Failed: Search results contained deprecated Policy v2.');
@@ -128,7 +128,7 @@ export async function testTrustAndReliabilitySuite() {
   const credScan = scanSessionAndInput(northstarSession, secretInput);
 
   if (credScan.traps.some((t) => t.type === 'SECURITY_CREDENTIAL_EXPOSURE')) {
-    console.log('  ✔ Credential Trap Detected: API key detected, redacted, and flagged for P1 Critical containment.');
+    console.log('  [PASS] Credential Trap Detected: API key detected, redacted, and flagged for P1 Critical containment.');
     passed++;
   } else {
     throw new Error('Trap 8 Failed: Credential exposure was not detected.');
@@ -142,7 +142,7 @@ export async function testTrustAndReliabilitySuite() {
   if (disputedOrder) {
     const credCalc = await calculateServiceCredit(disputedOrder);
     if (credCalc.status === 'NEEDS_VERIFICATION' || !credCalc.eligible) {
-      console.log('  ✔ Verification Barrier Enforced: Prevented premature service credit when carrier fault is disputed.');
+      console.log('  [PASS] Verification Barrier Enforced: Prevented premature service credit when carrier fault is disputed.');
       passed++;
     } else {
       throw new Error('Trap 9 Failed: Premature service credit was granted on disputed delivery.');
@@ -174,7 +174,7 @@ export async function testTrustAndReliabilitySuite() {
       // 2. Manager confirmation should succeed
       const managerConfirm = await confirmAction(managerSession, highValueProposal.action_id);
       if (managerConfirm.status === 'CONFIRMED') {
-        console.log('  ✔ Manager Gate Enforced: Blocked Support role for ₹2,500 credit, successfully executed with Manager authorization.');
+        console.log('  [PASS] Manager Gate Enforced: Blocked Support role for ₹2,500 credit, successfully executed with Manager authorization.');
         passed++;
       } else {
         throw new Error('Trap 10 Failed: Manager was unable to confirm high value action.');

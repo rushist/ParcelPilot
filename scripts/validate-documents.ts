@@ -135,9 +135,9 @@ export function runDocValidation() {
   }
 
   if (report.isValid) {
-    console.log('\n✔ All 6 documents validated with correct statuses, account scopes, and section embeddings.');
+    console.log('\n[PASS] All 6 documents validated with correct statuses, account scopes, and section embeddings.');
   } else {
-    console.error(`\n❌ Document Validation Failed with ${report.errors.length} errors:`);
+    console.error(`\n[FAIL] Document Validation Failed with ${report.errors.length} errors:`);
     for (const err of report.errors) {
       console.error(`  - ${err}`);
     }

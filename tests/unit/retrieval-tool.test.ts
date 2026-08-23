@@ -19,7 +19,7 @@ async function testRetrievalTool() {
   if (topNs.doc_id !== 'DOC-AGREEMENT-NORTHSTAR' || !topNs.text.includes('no cancellation fee')) {
     throw new Error(`Failed to retrieve Northstar Agreement Section 2 as top source: ${JSON.stringify(topNs)}`);
   }
-  console.log('  ✔ Correctly retrieved Northstar Enterprise Agreement Section 2.');
+  console.log('  [PASS] Correctly retrieved Northstar Enterprise Agreement Section 2.');
 
   // 2. "LumenWorks service credit"
   console.log('\n2. Testing query: "LumenWorks service credit" (for ACCT-002)...');
@@ -31,7 +31,7 @@ async function testRetrievalTool() {
   if (topLw.doc_id !== 'DOC-AGREEMENT-LUMENWORKS' || !topLw.text.includes('300')) {
     throw new Error(`Failed to retrieve LumenWorks Agreement Section 3: ${JSON.stringify(topLw)}`);
   }
-  console.log('  ✔ Correctly retrieved LumenWorks Service Agreement Section 3 (fixed INR 300 / 4-hour delay).');
+  console.log('  [PASS] Correctly retrieved LumenWorks Service Agreement Section 3 (fixed INR 300 / 4-hour delay).');
 
   // 3. "bulk upload limit"
   console.log('\n3. Testing query: "bulk upload limit"...');
@@ -43,7 +43,7 @@ async function testRetrievalTool() {
     throw new Error('Failed to retrieve 5,000-row supported bulk upload limit');
   }
   console.log(`  Top match: [${bulkChunk.doc_id}] ${bulkChunk.section}`);
-  console.log('  ✔ Correctly retrieved Product Operations Guide Section 1 (5,000 rows max limit).');
+  console.log('  [PASS] Correctly retrieved Product Operations Guide Section 1 (5,000 rows max limit).');
 
   // 4. "BOOKED after pickup" (KI-211 webhook lag)
   console.log('\n4. Testing query: "BOOKED after pickup"...');
@@ -55,7 +55,7 @@ async function testRetrievalTool() {
     throw new Error('Failed to retrieve KI-211 SwiftShip delay advisory');
   }
   console.log(`  Match: [${ki211Chunk.doc_id}] ${ki211Chunk.section}`);
-  console.log('  ✔ Correctly retrieved KI-211 SwiftShip status webhook lag advisory.');
+  console.log('  [PASS] Correctly retrieved KI-211 SwiftShip status webhook lag advisory.');
 
   // 5. "P1 credential exposure"
   console.log('\n5. Testing query: "P1 credential exposure"...');
@@ -67,7 +67,7 @@ async function testRetrievalTool() {
     throw new Error('Failed to retrieve Policy v3 P1 definition');
   }
   console.log(`  Top match: [${p1Chunk.doc_id}] ${p1Chunk.section}`);
-  console.log('  ✔ Correctly retrieved Support Policy v3 Section 2.');
+  console.log('  [PASS] Correctly retrieved Support Policy v3 Section 2.');
 
   // 6. Cross-Tenant Agreement Leakage Test
   console.log('\n6. Testing Cross-Tenant Agreement Isolation:');
@@ -78,7 +78,7 @@ async function testRetrievalTool() {
   if (hasLumenWorksAgreement) {
     throw new Error('Security Breach: Customer ACCT-001 retrieved ACCT-002 LumenWorks agreement.');
   }
-  console.log('  ✔ Customer ACCT-001 strictly prohibited from retrieving ACCT-002 agreement.');
+  console.log('  [PASS] Customer ACCT-001 strictly prohibited from retrieving ACCT-002 agreement.');
 
   // 7. Deprecated Policy v2 Filtering
   console.log('\n7. Testing Deprecated Document Handling:');
@@ -89,7 +89,7 @@ async function testRetrievalTool() {
   if (hasDeprecated) {
     throw new Error('Deprecated document v2 was incorrectly returned in standard search');
   }
-  console.log('  ✔ Deprecated Policy v2 excluded from current response context.');
+  console.log('  [PASS] Deprecated Policy v2 excluded from current response context.');
 
   const historicalRes = await executeSearchDocs(internalSupport, {
     query: 'What was the old deprecated response target in policy v2?',
@@ -99,7 +99,7 @@ async function testRetrievalTool() {
   if (!hasDeprecatedExplicit) {
     throw new Error('Explicit historical query with include_deprecated: true failed to retrieve v2');
   }
-  console.log('  ✔ Deprecated Policy v2 retrieved when explicitly requested with include_deprecated: true.');
+  console.log('  [PASS] Deprecated Policy v2 retrieved when explicitly requested with include_deprecated: true.');
 
   console.log('\n=== Module 7 Document Retrieval Tool Tests Completed Successfully ===');
 }

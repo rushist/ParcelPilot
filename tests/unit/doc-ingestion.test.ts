@@ -15,7 +15,7 @@ async function testDocIngestion() {
   if (!report.isValid) {
     throw new Error(`Document validation failed: ${report.errors.join(', ')}`);
   }
-  console.log(`✔ All ${report.docCount} documents and ${report.chunkCount} section chunks verified.`);
+  console.log(`[PASS] All ${report.docCount} documents and ${report.chunkCount} section chunks verified.`);
 
   // 3. Test Retrieval Gates
   console.log('\n3. Testing Mandatory Retrieval Scenarios:');
@@ -31,7 +31,7 @@ async function testDocIngestion() {
   if (topNs.doc_id !== 'DOC-AGREEMENT-NORTHSTAR' || !topNs.text.includes('no cancellation fee')) {
     throw new Error(`Scenario A failed: Expected Northstar agreement zero-fee cancellation, got ${topNs.doc_id}`);
   }
-  console.log('  ✔ Correctly retrieved Northstar zero-fee cancellation term over default SOP.');
+  console.log('  [PASS] Correctly retrieved Northstar zero-fee cancellation term over default SOP.');
 
   // Gate B: LumenWorks credit (ACCT-002)
   console.log('\n- Test Scenario B: "LumenWorks service credit" (for ACCT-002)');
@@ -43,7 +43,7 @@ async function testDocIngestion() {
   if (topLw.doc_id !== 'DOC-AGREEMENT-LUMENWORKS' || !topLw.text.includes('300')) {
     throw new Error(`Scenario B failed: Expected LumenWorks INR 300 custom credit, got ${topLw.doc_id}`);
   }
-  console.log('  ✔ Correctly retrieved LumenWorks custom INR 300 / 4-hour credit term.');
+  console.log('  [PASS] Correctly retrieved LumenWorks custom INR 300 / 4-hour credit term.');
 
   // Gate C: Bulk upload limit
   console.log('\n- Test Scenario C: "bulk upload limit"');
@@ -53,7 +53,7 @@ async function testDocIngestion() {
     throw new Error(`Scenario C failed: Expected 5,000 row product limit chunk`);
   }
   console.log(`  Top Result: [${bulkChunk.doc_id}] ${bulkChunk.section}`);
-  console.log('  ✔ Correctly retrieved 5,000-row supported bulk upload limit.');
+  console.log('  [PASS] Correctly retrieved 5,000-row supported bulk upload limit.');
 
   // Gate D: KI-211 SwiftShip delay
   console.log('\n- Test Scenario D: "KI-211 SwiftShip pickup webhook delay"');
@@ -63,7 +63,7 @@ async function testDocIngestion() {
     throw new Error(`Scenario D failed: Expected KI-211 SwiftShip delay advisory`);
   }
   console.log(`  Top Result: [${ki211Chunk.doc_id}] ${ki211Chunk.section}`);
-  console.log('  ✔ Correctly retrieved KI-211 SwiftShip status lag advisory.');
+  console.log('  [PASS] Correctly retrieved KI-211 SwiftShip status lag advisory.');
 
   // Gate E: P1 definition
   console.log('\n- Test Scenario E: "P1 definition"');
@@ -73,7 +73,7 @@ async function testDocIngestion() {
     throw new Error(`Scenario E failed: Expected Current Policy v3 P1 definition`);
   }
   console.log(`  Top Result: [${p1Chunk.doc_id}] ${p1Chunk.section}`);
-  console.log('  ✔ Correctly retrieved Current Policy v3 P1 definition (including credential leaks).');
+  console.log('  [PASS] Correctly retrieved Current Policy v3 P1 definition (including credential leaks).');
 
   // Deprecated Exclusion Check
   console.log('\n- Test Scenario F: Deprecated Policy v2 Exclusion');
@@ -82,7 +82,7 @@ async function testDocIngestion() {
   if (hasDeprecated) {
     throw new Error('Scenario F failed: Deprecated document v2 was incorrectly returned in current answer context');
   }
-  console.log('  ✔ Verified Deprecated Policy v2 is strictly filtered out from current search results.');
+  console.log('  [PASS] Verified Deprecated Policy v2 is strictly filtered out from current search results.');
 
   console.log('\n=== Module 3 Document Ingestion & Retrieval Tests Completed Successfully ===');
 }

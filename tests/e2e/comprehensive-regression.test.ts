@@ -37,7 +37,7 @@ export async function runComprehensiveRegression() {
       throw new Error(`Invalid account schema for: ${JSON.stringify(acc)}`);
     }
   }
-  console.log(`  ✔ Verified ${accounts.length} accounts schema & plan tiers.\n`);
+  console.log(`  [PASS] Verified ${accounts.length} accounts schema & plan tiers.\n`);
 
   console.log('[2/7] Testing Orders & Cancellation Calculations across all accounts...');
   for (const acc of accounts) {
@@ -57,7 +57,7 @@ export async function runComprehensiveRegression() {
       }
     }
   }
-  console.log(`  ✔ Verified ${verifiedOrdersCount} orders across accounts with deterministic fee calculations.\n`);
+  console.log(`  [PASS] Verified ${verifiedOrdersCount} orders across accounts with deterministic fee calculations.\n`);
 
   console.log('[3/7] Testing Tickets & SLA Matrix across all accounts...');
   for (const acc of accounts) {
@@ -70,7 +70,7 @@ export async function runComprehensiveRegression() {
       }
     }
   }
-  console.log(`  ✔ Verified ${verifiedTicketsCount} tickets with SLA calculations & breach evaluations.\n`);
+  console.log(`  [PASS] Verified ${verifiedTicketsCount} tickets with SLA calculations & breach evaluations.\n`);
 
   console.log('[4/7] Testing 6 Authoritative Policy Documents & Retrieval...');
   const searchQueries = [
@@ -95,7 +95,7 @@ export async function runComprehensiveRegression() {
   if (deprecationCheck.some((d) => d.doc_id === 'DOC-POLICY-V2-DEPRECATED')) {
     throw new Error('Security Breach: Deprecated Policy v2 was retrieved in search results.');
   }
-  console.log('  ✔ Verified retrieval and ranking for all 6 authoritative policy documents.\n');
+  console.log('  [PASS] Verified retrieval and ranking for all 6 authoritative policy documents.\n');
 
   console.log('[5/7] Testing Problem 1 Proactive Operational Insights Engine...');
   const spikeRes = (await getInsights('spike_by_topic')) as any;
@@ -108,10 +108,10 @@ export async function runComprehensiveRegression() {
   if (kiRes.data.length < 2) throw new Error('Known issue report missed KI-208 / KI-211');
   if (secRes.data.critical_p1_count === 0) throw new Error('Security triage report missed P1 tickets');
 
-  console.log(`  ✔ Clusters Identified: ${spikeRes.data.clusters.length} topics across ${spikeRes.data.total_open_tickets} open tickets.`);
-  console.log(`  ✔ SLA Breaches Tracked: ${slaRes.data.breached_count} breached tickets.`);
-  console.log(`  ✔ Known Issue Advisories: ${kiRes.data.length} active advisories.`);
-  console.log(`  ✔ Security Protocol: ${secRes.data.critical_p1_count} P1 Critical tickets.\n`);
+  console.log(`  [PASS] Clusters Identified: ${spikeRes.data.clusters.length} topics across ${spikeRes.data.total_open_tickets} open tickets.`);
+  console.log(`  [PASS] SLA Breaches Tracked: ${slaRes.data.breached_count} breached tickets.`);
+  console.log(`  [PASS] Known Issue Advisories: ${kiRes.data.length} active advisories.`);
+  console.log(`  [PASS] Security Protocol: ${secRes.data.critical_p1_count} P1 Critical tickets.\n`);
 
   console.log('[6/7] Testing Action Lifecycle & Immutable Audit Logging...');
   const managerSession = createInternalSession('manager', 'Audit_Tester');
@@ -130,7 +130,7 @@ export async function runComprehensiveRegression() {
   if (!auditLogs.some((l) => l.payload?.action_id === proposal.action_id)) {
     throw new Error('Audit log record not persisted for executed action');
   }
-  console.log(`  ✔ Verified Action proposal -> confirmation -> immutable audit logging (${confirmation.audit_log_id}).\n`);
+  console.log(`  [PASS] Verified Action proposal -> confirmation -> immutable audit logging (${confirmation.audit_log_id}).\n`);
 
   console.log('[7/7] Testing Problem 2 Trust & Reliability Guardrail Traps...');
   const customerSession = createCustomerSession('ACCT-001');
@@ -147,7 +147,7 @@ export async function runComprehensiveRegression() {
   const ambigTurn = await runAgentTurn(customerSession, 'Cancel my order');
   if (!ambigTurn.message.includes('Clarification Required')) throw new Error('Failed to request clarification on ambiguous order cancellation');
 
-  console.log('  ✔ Verified all trust & reliability guardrails and trap defenses.\n');
+  console.log('  [PASS] Verified all trust & reliability guardrails and trap defenses.\n');
 
   console.log('================================================================');
   console.log('=== ALL COMPREHENSIVE END-TO-END REGRESSION TESTS PASSED 100% ===');

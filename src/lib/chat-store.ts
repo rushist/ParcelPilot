@@ -4,6 +4,7 @@ import path from 'path';
 export interface StoredChatMessage {
   id: string;
   account_id: string;
+  ticket_id?: string;
   role: 'user' | 'assistant' | 'staff' | 'system';
   content: string;
   timestamp: string;
@@ -67,10 +68,19 @@ function persistChatStore(): void {
   }
 }
 
-export function getAccountChatMessages(accountId: string, role?: string): StoredChatMessage[] {
+export function getThreadKey(accountId: string, ticketId?: string): string {
+  const cleanAcc = (accountId || 'GLOBAL').trim().toUpperCase();
+  if (ticketId && ticketId.trim()) {
+    return `${cleanAcc}__${ticketId.trim().toUpperCase()}`;
+  }
+  return cleanAcc;
+}
+
+export function getAccountChatMessages(accountId: string, role?: string, ticketId?: string): StoredChatMessage[] {
   const store = loadChatStore();
-  const cleanId = (accountId || 'GLOBAL').trim().toUpperCase();
-  const allMessages = store.get(cleanId) || [];
+  const threadKey = getThreadKey(accountId, ticketId);
+  const threadMessages = store.get(threadKey);
+  const allMessages = threadMessages || (ticketId ? [] : store.get((accountId || 'GLOBAL').trim().toUpperCase()) || []);
 
   if (!role || role === 'support' || role === 'customer') {
     return allMessages;
@@ -108,18 +118,41 @@ export function getAccountChatMessages(accountId: string, role?: string): Stored
   return allMessages;
 }
 
-export function addAccountChatMessage(accountId: string, message: StoredChatMessage): void {
+export function addAccountChatMessage(accountId: string, message: StoredChatMessage, ticketId?: string): void {
   const store = loadChatStore();
-  const cleanId = (accountId || 'GLOBAL').trim().toUpperCase();
-  const list = store.get(cleanId) || [];
+  const effectiveTicketId = ticketId || message.ticket_id;
+  const threadKey = getThreadKey(accountId, effectiveTicketId);
+  const list = store.get(threadKey) || [];
   list.push(message);
-  store.set(cleanId, list);
+  store.set(threadKey, list);
+
+  // If this is a ticket thread, also record in the account master stream
+  if (effectiveTicketId) {
+    const mainKey = (accountId || 'GLOBAL').trim().toUpperCase();
+    const mainList = store.get(mainKey) || [];
+    if (!mainList.some((m) => m.id === message.id)) {
+      mainList.push(message);
+      store.set(mainKey, mainList);
+    }
+  }
+
   persistChatStore();
 }
 
-export function clearAccountChatMessages(accountId: string): void {
+export function clearAccountChatMessages(accountId: string, ticketId?: string): void {
   const store = loadChatStore();
-  const cleanId = (accountId || 'GLOBAL').trim().toUpperCase();
-  store.set(cleanId, []);
+  const threadKey = getThreadKey(accountId, ticketId);
+  store.set(threadKey, []);
   persistChatStore();
+}
+
+export function resetChatStoreToInitial(): void {
+  delete global.__parcelpilotChatStore;
+  if (fs.existsSync(CHAT_STORE_FILE)) {
+    try {
+      fs.unlinkSync(CHAT_STORE_FILE);
+    } catch (e) {
+      console.warn('Failed to delete chat store file during reset:', e);
+    }
+  }
 }

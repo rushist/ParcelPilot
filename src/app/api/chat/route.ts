@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const accountId = searchParams.get('account_id') || 'ACCT-001';
     const role = searchParams.get('role') || undefined;
-    const messages = getAccountChatMessages(accountId, role);
+    const ticketId = searchParams.get('ticket_id') || undefined;
+    const messages = getAccountChatMessages(accountId, role, ticketId);
     return NextResponse.json({ messages });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 });
@@ -26,7 +27,8 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const accountId = searchParams.get('account_id') || 'ACCT-001';
-    clearAccountChatMessages(accountId);
+    const ticketId = searchParams.get('ticket_id') || undefined;
+    clearAccountChatMessages(accountId, ticketId);
     return NextResponse.json({ success: true, messages: [] });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 });
@@ -36,7 +38,7 @@ export async function DELETE(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { session, message, history } = body;
+    const { session, message, history, ticket_id } = body;
 
     if (!session || !session.surface) {
       return NextResponse.json(
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
 
     const sessionContext: SessionContext = session;
     const accountId = (session as any).account_id || 'ACCT-001';
+    const ticketId = ticket_id || (session as any).ticket_id || undefined;
     const isInternal = session.surface === 'internal';
     const userRole = isInternal ? (session as any).role || 'support' : 'customer';
 
@@ -74,6 +77,7 @@ export async function POST(req: NextRequest) {
     const userStoredMsg: StoredChatMessage = {
       id: `usr-${Date.now()}`,
       account_id: accountId,
+      ticket_id: ticketId,
       role: isInternal ? 'staff' : 'user',
       content: message,
       timestamp: now.toISOString(),
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
         : `${session.account_id} CUSTOMER`,
       isDirectReply,
     };
-    addAccountChatMessage(accountId, userStoredMsg);
+    addAccountChatMessage(accountId, userStoredMsg, ticketId);
 
     // Index staff resolution into RAG operational memory and return immediately without redundant bot echo
     if (isDirectReply) {
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
       try {
         const { learnOpsResolution } = await import('@/retrieval/operational-memory');
         await learnOpsResolution({
-          ticketId: 'TKT-501',
+          ticketId: ticketId || 'TKT-501',
           accountId,
           problem: `Live Incident Support for ${accountId}`,
           resolution: cleanMsg,
@@ -128,6 +132,7 @@ export async function POST(req: NextRequest) {
     const botStoredMsg: StoredChatMessage = {
       id: `bot-${Date.now() + 1}`,
       account_id: accountId,
+      ticket_id: ticketId,
       role: 'assistant',
       content: response.message,
       timestamp: new Date().toISOString(),
@@ -146,7 +151,7 @@ export async function POST(req: NextRequest) {
       proposed_action: response.proposed_action,
       isSecurityAlert: !!response.trap_scan?.traps?.some((t) => t.type === 'PROMPT_INJECTION' || t.severity === 'CRITICAL'),
     };
-    addAccountChatMessage(accountId, botStoredMsg);
+    addAccountChatMessage(accountId, botStoredMsg, ticketId);
 
     return NextResponse.json(response);
   } catch (error: any) {

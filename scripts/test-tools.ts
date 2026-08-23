@@ -30,7 +30,7 @@ export async function runTestTools() {
   const intAccRes = await executeGetAccount(intSession, { account_id: 'ACCT-002' });
   console.log(`- Internal staff retrieved: ${intAccRes.result?.account_name} (${intAccRes.result?.account_id})`);
 
-  console.log('\n✔ All structured data tools executed successfully.');
+  console.log('\n[PASS] All structured data tools executed successfully.');
 }
 
 if (require.main === module) {

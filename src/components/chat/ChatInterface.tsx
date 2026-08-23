@@ -192,8 +192,9 @@ export function ChatInterface({
     const targetId = effectiveAccountId || 'ACCT-001';
     const activeRole = isInternal ? (session as any).role || 'support' : undefined;
     const roleParam = activeRole ? `&role=${activeRole}` : '';
+    const ticketParam = effectiveTicketId ? `&ticket_id=${effectiveTicketId}` : '';
     try {
-      const res = await fetch(`/api/chat?account_id=${targetId}${roleParam}`);
+      const res = await fetch(`/api/chat?account_id=${targetId}${roleParam}${ticketParam}`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.messages)) {
@@ -228,7 +229,7 @@ export function ChatInterface({
     syncMessages();
     const interval = setInterval(syncMessages, 2500);
     return () => clearInterval(interval);
-  }, [effectiveAccountId, (session as any).role]);
+  }, [effectiveAccountId, (session as any).role, effectiveTicketId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -379,11 +380,45 @@ export function ChatInterface({
       tools: [],
     });
     try {
-      await fetch(`/api/chat?account_id=${effectiveAccountId || 'ACCT-001'}`, { method: 'DELETE' });
+      await fetch('/api/reset', { method: 'POST' });
+      window.location.reload();
     } catch (e) {
-      console.warn('Failed to delete chat store:', e);
+      console.warn('Failed to reset system:', e);
     }
   };
+
+  // Dynamically load live SLA risk radar and topic spikes from real database state
+  useEffect(() => {
+    async function loadLiveRadar() {
+      if (!isInternal) return;
+      try {
+        const [slaRes, spikeRes] = await Promise.all([
+          fetch('/api/insights?type=sla_at_risk'),
+          fetch('/api/insights?type=spike_by_topic'),
+        ]);
+        if (slaRes.ok && spikeRes.ok) {
+          const slaData = await slaRes.json();
+          const spikeData = await spikeRes.json();
+          if (Array.isArray(slaData.data?.items)) {
+            setRadarData((prev) => ({
+              ...prev,
+              slaItems: slaData.data.items,
+              spikeClusters: (spikeData.data?.clusters || []).map((c: any) => ({
+                topic: c.topic,
+                count: c.count,
+                ki_id: c.known_issue_id,
+              })),
+            }));
+          }
+        }
+      } catch (e) {
+        // Ignore polling errors
+      }
+    }
+    loadLiveRadar();
+    const interval = setInterval(loadLiveRadar, 3500);
+    return () => clearInterval(interval);
+  }, [isInternal, effectiveAccountId]);
 
   return (
     <div className="flex flex-col flex-1 w-full max-w-full overflow-hidden bg-[#050505] h-full min-h-0 font-google-sans text-white px-2 sm:px-4 lg:px-6 py-2">
@@ -444,15 +479,10 @@ export function ChatInterface({
               </button>
             )}
 
-            <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bitcount font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>LIVE SYSTEM</span>
-            </div>
-
             <button
               onClick={handleClearChat}
               className="text-zinc-400 hover:text-white transition text-xs p-1 rounded hover:bg-[#1A1A1A] flex items-center gap-1"
-              title="Reset conversation"
+              title="Reset system to original pristine state"
             >
               <MaterialIcon name="restart_alt" className="text-sm text-zinc-400" />
               <span className="hidden sm:inline text-[11px] font-medium font-bitcount">RESET</span>

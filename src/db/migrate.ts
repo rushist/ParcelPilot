@@ -16,7 +16,7 @@ export async function runMigrations() {
     await client.query('BEGIN');
     await client.query(sqlContent);
     await client.query('COMMIT');
-    console.log('✔ PostgreSQL tables and indexes created successfully:');
+    console.log('[SUCCESS] PostgreSQL tables and indexes created successfully:');
     console.log('  - accounts');
     console.log('  - orders');
     console.log('  - tickets');
@@ -25,7 +25,7 @@ export async function runMigrations() {
     console.log('  - audit_logs');
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('❌ PostgreSQL Migration failed:', error);
+    console.error('[ERROR] PostgreSQL Migration failed:', error);
     throw error;
   } finally {
     client.release();
@@ -38,7 +38,7 @@ export async function runMigrations() {
     const existing = collectionsRes.collections.some((c) => c.name === QDRANT_DOCS_COLLECTION);
 
     if (existing) {
-      console.log(`ℹ Collection "${QDRANT_DOCS_COLLECTION}" already exists. Recreating for clean migration...`);
+      console.log(`[INFO] Collection "${QDRANT_DOCS_COLLECTION}" already exists. Recreating for clean migration...`);
       await qdrantClient.deleteCollection(QDRANT_DOCS_COLLECTION);
     }
 
@@ -52,7 +52,7 @@ export async function runMigrations() {
         default_segment_number: 2,
       },
     });
-    console.log(`✔ Qdrant collection "${QDRANT_DOCS_COLLECTION}" created (dim: 1536, metric: Cosine)`);
+    console.log(`[SUCCESS] Qdrant collection "${QDRANT_DOCS_COLLECTION}" created (dim: 1536, metric: Cosine)`);
 
     // Create payload indexes for fast filtered vector retrieval
     const payloadFields = [
@@ -72,9 +72,9 @@ export async function runMigrations() {
       console.log(`  - Payload index created: ${field.name} (${field.type})`);
     }
 
-    console.log('✔ All Qdrant payload indexes initialized.');
+    console.log('[SUCCESS] All Qdrant payload indexes initialized.');
   } catch (error: any) {
-    console.warn(`⚠ Qdrant initialization note/warning: ${error?.message || error}`);
+    console.warn(`[WARNING] Qdrant initialization note/warning: ${error?.message || error}`);
   }
 
   console.log('\n=== Migration Completed Successfully ===');

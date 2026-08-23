@@ -143,8 +143,8 @@ export async function confirmAction(
       account_id: action.account_id,
       role: 'assistant',
       content: action.type === 'escalation'
-        ? `### 🚀 Priority Specialist Dispatched\n\n- **Target Incident:** \`${targetLabel}\`\n- **Authorized By:** \`${actor}\`\n- **Status:** Custody transferred to **Tier-2 Logistics Operations & Engineering**.\n- **Audit Reference:** \`${auditId}\`\n\nA live operations specialist is now actively working this case.`
-        : `### ✅ Action Executed\n\n- **Action:** \`${action.type.toUpperCase()}\` on \`${targetLabel}\`\n- **Authorized By:** \`${actor}\`\n- **Status:** **EXECUTED**\n- **Details:** ${message}\n- **Audit Reference:** \`${auditId}\``,
+        ? `### Priority Specialist Dispatched\n\n- **Target Incident:** \`${targetLabel}\`\n- **Authorized By:** \`${actor}\`\n- **Status:** Custody transferred to **Tier-2 Logistics Operations & Engineering**.\n- **Audit Reference:** \`${auditId}\`\n\nA live operations specialist is now actively working this case.`
+        : `### Action Executed\n\n- **Action:** \`${action.type.toUpperCase()}\` on \`${targetLabel}\`\n- **Authorized By:** \`${actor}\`\n- **Status:** **EXECUTED**\n- **Details:** ${message}\n- **Audit Reference:** \`${auditId}\``,
       timestamp: confirmedAt,
       timeLabel,
       speakerLabel: 'SYSTEM EXECUTION',

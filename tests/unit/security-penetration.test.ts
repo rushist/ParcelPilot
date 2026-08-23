@@ -21,7 +21,7 @@ export async function testSecurityPenetrationSuite() {
   const ordersList = await getOrdersByAccount(sqliPayload);
 
   if (orderRes === null && ordersList.length === 0) {
-    console.log('  ✔ SQL Injection Defended: Parameterized queries prevented SQL payload execution.');
+    console.log('  [PASS] SQL Injection Defended: Parameterized queries prevented SQL payload execution.');
     passed++;
   } else {
     throw new Error('Attack Vector 1 Failed: SQL Injection payload was not safely handled.');
@@ -38,7 +38,7 @@ export async function testSecurityPenetrationSuite() {
   );
 
   if (crossTenantAttack.message.includes('Unauthorized') || crossTenantAttack.message.includes('strictly prohibited')) {
-    console.log('  ✔ Tenant Isolation Defended: Forged cross-tenant query strictly blocked by access layer.');
+    console.log('  [PASS] Tenant Isolation Defended: Forged cross-tenant query strictly blocked by access layer.');
     passed++;
   } else {
     throw new Error('Attack Vector 2 Failed: Cross-tenant access was not blocked.');
@@ -61,7 +61,7 @@ export async function testSecurityPenetrationSuite() {
     await executeConfirmAction(supportSession, { action_id: proposal.result.action_id });
     throw new Error('Attack Vector 3 Failed: Support role bypassed manager authorization gate.');
   } catch (err: any) {
-    console.log('  ✔ Role Privilege Gate Defended: Support role blocked from unauthorized high-value state change.');
+    console.log('  [PASS] Role Privilege Gate Defended: Support role blocked from unauthorized high-value state change.');
     passed++;
   }
 
@@ -75,7 +75,7 @@ export async function testSecurityPenetrationSuite() {
   );
 
   if (jailbreakAttack.message.includes('safety guardrails') || jailbreakAttack.message.includes('cannot be overridden')) {
-    console.log('  ✔ Jailbreak Defended: Instruction override neutralized without revealing system prompt.');
+    console.log('  [PASS] Jailbreak Defended: Instruction override neutralized without revealing system prompt.');
     passed++;
   } else {
     throw new Error('Attack Vector 4 Failed: Prompt injection was not blocked.');
@@ -90,7 +90,7 @@ export async function testSecurityPenetrationSuite() {
   const scrubbed = scrubOutputSecrets(leakedResponse);
 
   if (!scrubbed.includes('SecretPass123') && !scrubbed.includes(dummyApiKey) && scrubbed.includes('[CONFIDENTIAL]')) {
-    console.log('  ✔ Secret Scrubber Defended: Database URIs and API keys automatically redacted.');
+    console.log('  [PASS] Secret Scrubber Defended: Database URIs and API keys automatically redacted.');
     passed++;
   } else {
     throw new Error('Attack Vector 5 Failed: Secret output scrubber did not redact secrets.');
@@ -104,7 +104,7 @@ export async function testSecurityPenetrationSuite() {
   const scanXss = scanSessionAndInput(customerA, xssInput);
 
   if (scanXss.sanitizedInput) {
-    console.log('  ✔ XSS Sanitization Defended: Input payload safely handled without unescaped script execution.');
+    console.log('  [PASS] XSS Sanitization Defended: Input payload safely handled without unescaped script execution.');
     passed++;
   } else {
     throw new Error('Attack Vector 6 Failed: XSS payload was not handled.');

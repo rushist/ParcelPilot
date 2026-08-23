@@ -27,12 +27,12 @@ export async function ingestDocuments() {
   try {
     console.log('1. Parsing section chunks from all 6 PDF documents...');
     const chunks = await parseDocumentSections();
-    console.log(`✔ Extracted ${chunks.length} structured sections across 6 documents.`);
+    console.log(`[PASS] Extracted ${chunks.length} structured sections across 6 documents.`);
 
     console.log('\n2. Generating vector embeddings for all sections...');
     const textsToEmbed = chunks.map((c) => `${c.title}: ${c.text}`);
     const embeddings = await generateEmbeddingsBatch(textsToEmbed);
-    console.log(`✔ Generated ${embeddings.length} vector embeddings (dimension: ${embeddings[0].length}).`);
+    console.log(`[PASS] Generated ${embeddings.length} vector embeddings (dimension: ${embeddings[0].length}).`);
 
     enrichedChunks = chunks.map((c, idx) => ({
       id: c.id,
@@ -52,7 +52,7 @@ export async function ingestDocuments() {
     if (fs.existsSync(fallbackPath)) {
       console.log(`\nNotice: PDF parsing had an issue (${err.message}). Loading pre-calculated doc chunks from ${fallbackPath}...`);
       enrichedChunks = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
-      console.log(`✔ Loaded ${enrichedChunks.length} pre-calculated chunks with embeddings.`);
+      console.log(`[PASS] Loaded ${enrichedChunks.length} pre-calculated chunks with embeddings.`);
     } else {
       throw err;
     }
@@ -66,7 +66,7 @@ export async function ingestDocuments() {
     }
     const jsonPath = path.join(dataDir, 'doc-chunks.json');
     fs.writeFileSync(jsonPath, JSON.stringify(enrichedChunks, null, 2), 'utf8');
-    console.log(`✔ Saved ${enrichedChunks.length} chunks with embeddings to src/data/doc-chunks.json`);
+    console.log(`[PASS] Saved ${enrichedChunks.length} chunks with embeddings to src/data/doc-chunks.json`);
   } catch (fsErr: any) {
     console.warn(`Notice: Could not overwrite local doc-chunks.json (${fsErr.message}). Continuing with database ingestion.`);
   }
@@ -99,7 +99,7 @@ export async function ingestDocuments() {
         );
       }
       await client.query('COMMIT');
-      console.log('✔ Stored chunks in PostgreSQL (full-text tsvector index updated automatically via trigger).');
+      console.log('[PASS] Stored chunks in PostgreSQL (full-text tsvector index updated automatically via trigger).');
     } catch (err) {
       await client.query('ROLLBACK');
       console.error('Failed to store chunks in Postgres:', err);
@@ -107,7 +107,7 @@ export async function ingestDocuments() {
       client.release();
     }
   } else {
-    console.log(`ℹ PostgreSQL offline (${dbHealth.error}). Chunks cached in local JSON index.`);
+    console.log(`[INFO] PostgreSQL offline (${dbHealth.error}). Chunks cached in local JSON index.`);
   }
 
   // Insert into Qdrant if connected
@@ -143,12 +143,12 @@ export async function ingestDocuments() {
         wait: true,
         points,
       });
-      console.log(`✔ Upserted ${points.length} vectors into Qdrant collection "${QDRANT_DOCS_COLLECTION}".`);
+      console.log(`[PASS] Upserted ${points.length} vectors into Qdrant collection "${QDRANT_DOCS_COLLECTION}".`);
     } catch (err) {
       console.warn('Qdrant upsert notice/warning:', err);
     }
   } else {
-    console.log(`ℹ Qdrant offline (${qdrantHealth.error}). Vector embeddings cached for similarity search.`);
+    console.log(`[INFO] Qdrant offline (${qdrantHealth.error}). Vector embeddings cached for similarity search.`);
   }
 
   console.log('\n=== Document Ingestion Completed Successfully ===');
