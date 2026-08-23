@@ -189,29 +189,45 @@ export async function runAgentTurn(
   }
 
   // 3. Deterministic Tool-Calling Orchestrator (Offline & Automated Test Suite)
-  return await runDeterministicAgentTurn(session, effectiveInput, toolTraces, sources, trapScan);
+  return await runDeterministicAgentTurn(session, effectiveInput, toolTraces, sources, history, trapScan);
 }
 
-async function resolveDefaultOrderForSession(session: SessionContext, query: string): Promise<string> {
+async function resolveDefaultOrderForSession(session: SessionContext, query: string, history: ChatMessage[] = []): Promise<string> {
   const match = query.match(/ORD-\d+/i);
   if (match) return match[0].toUpperCase();
 
+  // Search conversation history in reverse for recently discussed order
+  for (let i = history.length - 1; i >= 0; i--) {
+    const histMatch = history[i].content.match(/ORD-\d+/i);
+    if (histMatch) return histMatch[0].toUpperCase();
+  }
+
   const accountId = (session as any).account_id;
   if (accountId) {
-    const orders = await getOrdersByAccount(accountId);
-    if (orders.length > 0) return orders[0].order_id;
+    try {
+      const orders = await getOrdersByAccount(accountId);
+      if (orders.length > 0) return orders[0].order_id;
+    } catch (e) {}
   }
   return 'ORD-1001';
 }
 
-async function resolveDefaultTicketForSession(session: SessionContext, query: string): Promise<string> {
+async function resolveDefaultTicketForSession(session: SessionContext, query: string, history: ChatMessage[] = []): Promise<string> {
   const match = query.match(/TKT-\d+/i);
   if (match) return match[0].toUpperCase();
 
+  // Search conversation history in reverse
+  for (let i = history.length - 1; i >= 0; i--) {
+    const histMatch = history[i].content.match(/TKT-\d+/i);
+    if (histMatch) return histMatch[0].toUpperCase();
+  }
+
   const accountId = (session as any).account_id;
   if (accountId) {
-    const tickets = await getTicketsByAccount(accountId);
-    if (tickets.length > 0) return tickets[0].ticket_id;
+    try {
+      const tickets = await getTicketsByAccount(accountId);
+      if (tickets.length > 0) return tickets[0].ticket_id;
+    } catch (e) {}
   }
   return 'TKT-501';
 }
@@ -224,6 +240,7 @@ async function runDeterministicAgentTurn(
   query: string,
   toolTraces: ToolExecutionTrace[],
   sources: SearchResult[],
+  history: ChatMessage[] = [],
   trapScan?: TrapScanResult
 ): Promise<AgentTurnResponse> {
   const isInternal = session.surface === 'internal';
@@ -800,11 +817,23 @@ async function runDeterministicAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 7: Cancellation Inquiry / Request
+    // Scenario 7: Cancellation Inquiry / Request & Confirmation Follow-up
     // ------------------------------------------------------------------------
-    else if (queryLower.includes('cancel') || queryLower.includes('cancellation fee')) {
+    else if (
+      queryLower.includes('cancel') ||
+      queryLower.includes('cancellation fee') ||
+      queryLower === 'yes' ||
+      queryLower === 'confirm' ||
+      queryLower === 'proceed' ||
+      queryLower === 'sure' ||
+      queryLower === 'ok' ||
+      queryLower === 'go ahead' ||
+      queryLower === 'cancel it' ||
+      queryLower === 'please do' ||
+      queryLower === 'do it'
+    ) {
       turnCount++;
-      const orderId = await resolveDefaultOrderForSession(session, query);
+      const orderId = await resolveDefaultOrderForSession(session, query, history);
 
       try {
         const ordRes = await dispatchToolCall(session, 'get_orders', { order_id: orderId });
@@ -836,18 +865,39 @@ async function runDeterministicAgentTurn(
         const policy = feeRes.result.policy_applied;
 
         if (feeRes.result.can_cancel) {
-          if (queryLower.includes('please cancel') || queryLower.includes('proceed') || queryLower.includes('confirm')) {
-            turnCount++;
-            const propRes = await dispatchToolCall(session, 'propose_action', {
-              type: 'cancellation',
-              target_id: orderId,
-              reason: `Customer cancellation requested. Fee: INR ${fee} per ${policy}.`,
-            });
-            toolTraces.push(propRes.trace);
-            proposedAction = propRes.result;
-            responseText = `I have verified order **${orderId}**. Applicable Cancellation Fee: **INR ${fee}** (${policy}).\n\nI have generated a cancellation action proposal. Please review and click **Confirm Cancellation** in the right panel to proceed.`;
+          turnCount++;
+          const propRes = await dispatchToolCall(session, 'propose_action', {
+            type: 'cancellation',
+            target_id: orderId,
+            reason: `Customer cancellation requested for ${orderId}. Applicable Fee: INR ${fee} per ${policy}.`,
+          });
+          toolTraces.push(propRes.trace);
+          proposedAction = propRes.result;
+
+          const isDirectAffirmation =
+            queryLower === 'yes' ||
+            queryLower === 'confirm' ||
+            queryLower === 'proceed' ||
+            queryLower === 'sure' ||
+            queryLower === 'ok' ||
+            queryLower === 'go ahead' ||
+            queryLower === 'cancel it' ||
+            queryLower === 'please do' ||
+            queryLower === 'do it';
+
+          if (isDirectAffirmation) {
+            responseText = `### ✅ Cancellation Staged for Order ${orderId}\n\n` +
+              `I have verified and confirmed your cancellation request for **${orderId}**:\n\n` +
+              `- **Current Status:** \`${ordRes.result[0]?.status || 'BOOKED'}\` &rarr; \`CANCELLED\`\n` +
+              `- **Applicable Fee:** **INR ${fee}**\n` +
+              `- **Governing Policy:** **${policy}** (${feeRes.result.source_authority})\n\n` +
+              `I have queued the **Cancellation Confirmation Card** in the right panel. Click **Confirm Order Cancellation** to finalize the ledger mutation.`;
           } else {
-            responseText = `Order **${orderId}** is currently in status **${ordRes.result[0]?.status || 'BOOKED'}**.\n- Applicable Cancellation Fee: **INR ${fee}**\n- Governing Policy: **${policy}** (${feeRes.result.source_authority})\n\nWould you like me to propose the cancellation for this shipment?`;
+            responseText = `### 🛑 Cancellation Proposal: Order ${orderId}\n\n` +
+              `- **Current Status:** \`${ordRes.result[0]?.status || 'BOOKED'}\`\n` +
+              `- **Applicable Fee:** **INR ${fee}** (${policy})\n` +
+              `- **Governing Authority:** **${policy}** (${feeRes.result.source_authority})\n\n` +
+              `I have generated a **Cancellation Action Proposal**. Please review the details and click **Confirm Order Cancellation** in the right panel to execute.`;
           }
         } else {
           responseText = `Order **${orderId}** cannot be cancelled because it is in status **${ordRes.result[0]?.status}**.\n\n${feeRes.result.reason}\n- Source: **${policy}**`;

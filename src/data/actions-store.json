@@ -666,5 +666,43 @@
     "notes": "Customer cancellation requested. Fee: INR 0 per Northstar Enterprise Agreement Section 2.",
     "confirmed_at": "2026-08-23T16:21:14.447Z",
     "confirmed_by": "Customer (ACCT-001)"
+  },
+  {
+    "id": "ACT-MT675T5S-2KPN",
+    "type": "cancellation",
+    "payload": {
+      "order_id": "ORD-1003",
+      "fee_inr": 0,
+      "policy": "Northstar Enterprise Agreement Section 2",
+      "target_id": "ORD-1003",
+      "reason": "Customer cancellation requested for ORD-1003. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2.",
+      "title": "Cancel Shipment ORD-1003",
+      "summary": "Proposed cancellation of order ORD-1003 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+      "requires_manager_approval": false
+    },
+    "status": "PROPOSED",
+    "account_id": "ACCT-001",
+    "created_at": "2026-08-23T19:25:23.296Z",
+    "created_by": "Customer (ACCT-001)",
+    "notes": "Customer cancellation requested for ORD-1003. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2."
+  },
+  {
+    "id": "ACT-MT675TJM-TY9F",
+    "type": "cancellation",
+    "payload": {
+      "order_id": "ORD-1003",
+      "fee_inr": 0,
+      "policy": "Northstar Enterprise Agreement Section 2",
+      "target_id": "ORD-1003",
+      "reason": "Customer cancellation requested for ORD-1003. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2.",
+      "title": "Cancel Shipment ORD-1003",
+      "summary": "Proposed cancellation of order ORD-1003 with cancellation fee INR 0 (Northstar Enterprise Agreement Section 2).",
+      "requires_manager_approval": false
+    },
+    "status": "PROPOSED",
+    "account_id": "ACCT-001",
+    "created_at": "2026-08-23T19:25:23.794Z",
+    "created_by": "Customer (ACCT-001)",
+    "notes": "Customer cancellation requested for ORD-1003. Applicable Fee: INR 0 per Northstar Enterprise Agreement Section 2."
   }
 ]
