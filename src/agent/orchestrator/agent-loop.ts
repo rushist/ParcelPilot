@@ -680,6 +680,54 @@ async function runDeterministicAgentTurn(
     }
 
     // ------------------------------------------------------------------------
+    // Scenario 10.5: SLA / Response Time / Contractual Targets
+    // ------------------------------------------------------------------------
+    else if (
+      queryLower.includes('sla') ||
+      queryLower.includes('response time') ||
+      queryLower.includes('p1 critical') ||
+      queryLower.includes('target time') ||
+      queryLower.includes('contractual response')
+    ) {
+      const accountId = (session as any).account_id || 'ACCT-001';
+      const account = await getAccountById(accountId);
+      const isNorthstar = accountId === 'ACCT-001' || account?.account_name.includes('Northstar');
+      const isLumenWorks = accountId === 'ACCT-002' || account?.account_name.includes('LumenWorks');
+
+      turnCount++;
+      const docRes = await dispatchToolCall(session, 'search_docs', {
+        query: `${isNorthstar ? 'Northstar' : isLumenWorks ? 'LumenWorks' : 'Support Policy'} contractual SLA response time P1 critical`,
+      });
+      toolTraces.push(docRes.trace);
+      if (Array.isArray(docRes.result)) sources.push(...docRes.result);
+
+      if (isNorthstar) {
+        responseText = `### Contractual SLA Target: Northstar Logistics (ACCT-001)\n\n` +
+          `Per **Northstar Enterprise Agreement Section 1** (*Signed Customer Agreement • Rank 1 Override*):\n\n` +
+          `- **P1 (Critical Incidents / Outages):** **15 minutes** (Overrides standard 60-minute policy)\n` +
+          `- **P2 (Major Feature Degradation):** **60 minutes** (1 hour)\n` +
+          `- **P3 (General Support & Admin):** **480 minutes** (8 hours)\n\n` +
+          `*Governing Document: DOC-AGREEMENT-NORTHSTAR Section 1.*`;
+      } else if (isLumenWorks) {
+        responseText = `### Contractual SLA Target: LumenWorks (ACCT-002)\n\n` +
+          `Per **LumenWorks Service Agreement Section 1** (*Signed Customer Agreement • Rank 1 Override*):\n\n` +
+          `- **P1 (Critical Incidents):** **120 minutes** (2 hours)\n` +
+          `- **P2 (High Priority):** **240 minutes** (4 hours)\n` +
+          `- **P3 (Normal Priority):** **960 minutes** (16 hours)\n\n` +
+          `*Governing Document: DOC-AGREEMENT-LUMENWORKS Section 1.*`;
+      } else {
+        const plan = account?.plan || 'Enterprise';
+        const p1Time = plan === 'Enterprise' ? '30 minutes' : plan === 'Growth' ? '2 hours' : '4 hours';
+        responseText = `### Standard Support SLA Targets (${plan} Plan)\n\n` +
+          `Per **Support Policy v3 Section 3**:\n\n` +
+          `- **P1 Critical Incidents:** **${p1Time}**\n` +
+          `- **P2 High Incidents:** **2 hours**\n` +
+          `- **P3 Normal Inquiries:** **8 hours**\n\n` +
+          `*Governing Document: DOC-POLICY-V3 Section 3.*`;
+      }
+    }
+
+    // ------------------------------------------------------------------------
     // Scenario 11: Problem 1 Proactive Insights (Internal only)
     // ------------------------------------------------------------------------
     else if (queryLower.includes('insight') || queryLower.includes('spike') || queryLower.includes('triage')) {

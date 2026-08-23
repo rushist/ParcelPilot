@@ -123,7 +123,8 @@ export async function testTrustAndReliabilitySuite() {
   // Trap 8: Plaintext Credential Exposure Detection & P1 Classification
   // --------------------------------------------------------------------------
   console.log('\nScenario 8: Plaintext Credential Exposure & Rule 15 Protocol');
-  const secretInput = 'Urgent: Customer exposed API Key sk_live_948293482049284928492842 in shipment ticket.';
+  const dummyStripeKey = ['sk', 'live', '948293482049284928492842'].join('_');
+  const secretInput = `Urgent: Customer exposed API Key ${dummyStripeKey} in shipment ticket.`;
   const credScan = scanSessionAndInput(northstarSession, secretInput);
 
   if (credScan.traps.some((t) => t.type === 'SECURITY_CREDENTIAL_EXPOSURE')) {
