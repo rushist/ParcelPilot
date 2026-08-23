@@ -15,14 +15,14 @@ async function testRolePlaybookAndEscalation() {
   console.log('Learned playbook requiring Manager approval indexed.');
 
   console.log('\n--- 2. Querying similar incident as Support ---');
-  const supportSession = createInternalSession('support', 'Agent_Maya', 'ACCT-001');
+  const supportSession = { ...createInternalSession('support', 'Agent_Maya'), account_id: 'ACCT-001' } as any;
   const res1 = await runAgentTurn(supportSession, 'How do we handle carrier dispatch fee dispute for Northstar?');
   console.log(res1.message);
   console.log('Proposal Target Role:', res1.proposed_action?.payload?.target_role || (res1.proposed_action?.requires_manager_approval ? 'manager' : 'support'));
   console.log('Requires Manager Approval:', res1.proposed_action?.requires_manager_approval);
 
   console.log('\n--- 3. Escalating from Ops to Manager ---');
-  const opsSession = createInternalSession('ops', 'Agent_Vikram', 'ACCT-001');
+  const opsSession = { ...createInternalSession('ops', 'Agent_Vikram'), account_id: 'ACCT-001' } as any;
   const res2 = await runAgentTurn(opsSession, '/escalate manager High priority outage on SwiftShip webhook');
   console.log(res2.message);
 

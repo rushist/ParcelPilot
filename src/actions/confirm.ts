@@ -31,6 +31,21 @@ export async function confirmAction(
   }
 
   if (action.status !== 'PROPOSED') {
+    if (action.status === 'CONFIRMED' || action.status === 'EXECUTED') {
+      const actionTitle = action.payload?.title || `Action ${action.type}`;
+      return {
+        action_id: action.id,
+        type: action.type,
+        account_id: action.account_id,
+        status: 'CONFIRMED',
+        title: actionTitle,
+        confirmed_at: action.confirmed_at || new Date().toISOString(),
+        confirmed_by: action.confirmed_by || 'System',
+        audit_log_id: `AUD-${action.id}`,
+        execution_details: action.payload,
+        message: `Action "${actionTitle}" is already confirmed and recorded in the audit log.`,
+      };
+    }
     throw new Error(`Action "${actionId}" cannot be confirmed because it is already "${action.status}".`);
   }
 

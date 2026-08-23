@@ -198,12 +198,23 @@ export function ChatInterface({
         const data = await res.json();
         if (Array.isArray(data.messages)) {
           setMessages(data.messages);
-          // Sync sidecar proposed action if present in the history
+          // Sync sidecar proposed action if present in the history and not already executed
           const lastActionMsg = [...data.messages].reverse().find((m) => m.proposed_action);
-          if (lastActionMsg?.proposed_action) {
+          const hasBeenExecuted = data.messages.some((m: any) =>
+            m.isActionConfirmation ||
+            m.content?.includes('Action Executed') ||
+            (lastActionMsg?.proposed_action?.action_id && m.content?.includes(lastActionMsg.proposed_action.action_id))
+          );
+
+          if (lastActionMsg?.proposed_action && !hasBeenExecuted) {
             setActiveAnalysis((prev) => ({
               ...prev,
               proposedAction: lastActionMsg.proposed_action,
+            }));
+          } else if (hasBeenExecuted) {
+            setActiveAnalysis((prev) => ({
+              ...prev,
+              proposedAction: undefined,
             }));
           }
         }

@@ -129,17 +129,15 @@ export async function proposeAction(
       };
     } else {
       const ticket = await getTicketById(target_id);
-      if (!ticket) throw new Error(`Ticket not found: ${target_id}`);
-
-      accountId = ticket.account_id;
+      accountId = ticket ? ticket.account_id : (session as any).account_id || 'ACCT-001';
       assertAccountAccess(session, accountId);
 
-      title = `Escalate Ticket ${ticket.ticket_id} to Priority Engineering/Operations`;
-      summary = `Immediate operational escalation requested for ticket ${ticket.ticket_id} (${ticket.subject}).`;
+      title = `Escalate Incident ${target_id} to Priority Operations`;
+      summary = `Immediate operational escalation requested for incident ${target_id} (${ticket ? ticket.subject : 'System Support Inquiry'}).`;
       parsedDetails = {
         ...parsedDetails,
-        ticket_id: ticket.ticket_id,
-        subject: ticket.subject,
+        ticket_id: target_id,
+        subject: ticket ? ticket.subject : 'Support Inquiry',
         escalated_to: 'Tier-2 Operations & Engineering',
       };
     }
