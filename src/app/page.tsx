@@ -54,7 +54,7 @@ export default function HomePage() {
             <nav className="hidden md:flex items-center gap-5 bg-[#131313] border border-[#242424] rounded-full px-5 py-1.5 text-xs text-zinc-300 shadow-sm">
               <Link href="/customer" className="hover:text-white font-medium transition">Layouts</Link>
               <Link href="/internal" className="hover:text-white font-medium transition">System</Link>
-              <Link href="/internal/insights" className="hover:text-white font-medium transition">Docs</Link>
+              <Link href="/internal/insights" className="hover:text-white font-medium transition">Insights</Link>
             </nav>
           </div>
 

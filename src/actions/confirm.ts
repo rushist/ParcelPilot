@@ -86,6 +86,23 @@ export async function confirmAction(
     message = `Action ${action.type} confirmed and executed.`;
   }
 
+  // Learn and vectorize operational resolution if note/resolution is provided
+  if (action.type === 'ticket_update' || action.payload.staff_note || action.payload.details?.staff_note || action.payload.reason) {
+    try {
+      const { learnOpsResolution } = await import('../retrieval/operational-memory');
+      const note = action.payload.staff_note || action.payload.details?.staff_note || action.payload.reason || message;
+      await learnOpsResolution({
+        ticketId: targetLabel,
+        accountId: action.account_id,
+        problem: `Shipment / Ticket Operation on ${targetLabel}`,
+        resolution: note,
+        operator: actor,
+      });
+    } catch (memErr) {
+      console.warn('Operational memory learning notice:', memErr);
+    }
+  }
+
   // Broadcast confirmation to shared account chat store
   try {
     const { addAccountChatMessage } = await import('../lib/chat-store');

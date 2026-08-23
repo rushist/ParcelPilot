@@ -88,6 +88,23 @@ export async function POST(req: NextRequest) {
     };
     addAccountChatMessage(accountId, userStoredMsg);
 
+    // Index staff resolution into RAG operational memory
+    if (isDirectReply) {
+      try {
+        const { learnOpsResolution } = await import('@/retrieval/operational-memory');
+        const cleanMsg = message.replace(/^\/(?:reply|r)\s*/i, '').replace(/^reply:\s*/i, '').trim();
+        await learnOpsResolution({
+          ticketId: 'TKT-501',
+          accountId,
+          problem: `Live Incident Support for ${accountId}`,
+          resolution: cleanMsg,
+          operator: `STAFF (${userRole.toUpperCase()})`,
+        });
+      } catch (memErr) {
+        console.warn('Ops learning notice:', memErr);
+      }
+    }
+
     // 2. Execute agent loop
     const response = await runAgentTurn(sessionContext, message, history || []);
 

@@ -746,28 +746,59 @@ async function runDeterministicAgentTurn(
     // Scenario 12: General Query & Surface-Aware Graceful Fallback
     // ------------------------------------------------------------------------
     else {
-      turnCount++;
-      const docRes = await dispatchToolCall(session, 'search_docs', { query });
-      toolTraces.push(docRes.trace);
-      if (Array.isArray(docRes.result) && docRes.result.length > 0) {
-        sources.push(...docRes.result);
-        const topDoc = docRes.result[0];
-        responseText = `### Policy & Documentation Guidance\n\n` +
-          `${topDoc.text}\n\n` +
-          `*Source: ${topDoc.title || topDoc.doc_id} (${topDoc.section}).*`;
-      } else {
-        if (isInternal) {
-          responseText = `### Internal Operations Assistance\n\n` +
-            `I have indexed your query against platform records and merchant agreements.\n\n` +
-            `- **Reply to Client:** Type \`/reply [message]\` to send a direct notification to the customer.\n` +
-            `- **Escalate Custody:** Type \`/escalate\` or state *"send it to operations"* to transfer ticket.\n` +
-            `- **Close Request:** Click **Resolve Request** or type \`/close\` to archive.`;
+      // Check operational memory for previously learned Ops workflows
+      let matchedPlaybook = false;
+      try {
+        const { findMatchingOpsPlaybook } = await import('../../retrieval/operational-memory');
+        const playbook = await findMatchingOpsPlaybook(query, (session as any).account_id);
+
+        if (playbook.matched && playbook.snippet) {
+          matchedPlaybook = true;
+          responseText = `### 💡 Proven Operational Playbook (Learned from ${playbook.ticketId})\n\n` +
+            `${playbook.snippet}\n\n` +
+            `*Governing Authority: DOC-PLAYBOOK-OPS (Rank 3 Operational Memory).*`;
+          sources.push({
+            chunk_id: `PLAYBOOK-${playbook.ticketId}`,
+            doc_id: 'DOC-PLAYBOOK-OPS',
+            doc_status: 'CURRENT',
+            doc_type: 'guide',
+            effective_date: new Date().toISOString().split('T')[0],
+            account_id: (session as any).account_id || null,
+            section: `Ops Resolution (${playbook.ticketId})`,
+            title: `Learned Playbook: ${playbook.problem || 'Operational Resolution'}`,
+            authority_rank: 3,
+            score: 0.95,
+            text: playbook.snippet,
+          });
+        }
+      } catch (memErr) {
+        // Fallback to standard doc search
+      }
+
+      if (!matchedPlaybook) {
+        turnCount++;
+        const docRes = await dispatchToolCall(session, 'search_docs', { query });
+        toolTraces.push(docRes.trace);
+        if (Array.isArray(docRes.result) && docRes.result.length > 0) {
+          sources.push(...docRes.result);
+          const topDoc = docRes.result[0];
+          responseText = `### Policy & Documentation Guidance\n\n` +
+            `${topDoc.text}\n\n` +
+            `*Source: ${topDoc.title || topDoc.doc_id} (${topDoc.section}).*`;
         } else {
-          responseText = `### Support Resolution Routing\n\n` +
-            `I could not locate an exact automated policy match for your inquiry.\n\n` +
-            `**Options to proceed:**\n` +
-            `1. **Specific Order Check:** Provide your **Order ID** (e.g. \`ORD-1001\`) or **Ticket ID** (e.g. \`TKT-501\`).\n` +
-            `2. **Human Specialist:** Reply **"Escalate to human"** to connect with our logistics operations team.`;
+          if (isInternal) {
+            responseText = `### Internal Operations Assistance\n\n` +
+              `I have indexed your query against platform records and merchant agreements.\n\n` +
+              `- **Reply to Client:** Type \`/reply [message]\` to send a direct notification to the customer.\n` +
+              `- **Escalate Custody:** Type \`/escalate\` or state *"send it to operations"* to transfer ticket.\n` +
+              `- **Close Request:** Click **Resolve Request** or type \`/close\` to archive.`;
+          } else {
+            responseText = `### Support Resolution Routing\n\n` +
+              `I could not locate an exact automated policy match for your inquiry.\n\n` +
+              `**Options to proceed:**\n` +
+              `1. **Specific Order Check:** Provide your **Order ID** (e.g. \`ORD-1001\`) or **Ticket ID** (e.g. \`TKT-501\`).\n` +
+              `2. **Human Specialist:** Reply **"Escalate to human"** to connect with our logistics operations team.`;
+          }
         }
       }
     }

@@ -188,14 +188,6 @@ export default function InternalChatPage() {
 
           {/* Role & Staff Switcher */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/internal/insights"
-              className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#141414] border border-[#242424] text-zinc-300 hover:bg-white hover:text-black transition font-medium"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Insights Dashboard</span>
-            </Link>
-
             <div className="flex items-center gap-1 bg-[#141414] border border-[#262626] rounded-full p-1">
               <span className="text-[11px] text-zinc-400 pl-2 pr-1 font-bitcount">ROLE:</span>
               {(['support', 'ops', 'manager'] as InternalRole[]).map((r) => (
