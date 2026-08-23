@@ -172,6 +172,26 @@ export async function getOrdersByAccount(
   });
 }
 
+export async function updateTicketRecord(ticket: TicketRecord): Promise<void> {
+  const cleanId = ticket.ticket_id.trim().toUpperCase();
+  const dbHealth = await checkDbConnection();
+  if (dbHealth.ok) {
+    try {
+      await query(
+        `UPDATE tickets 
+         SET status = $1, issue_type = $2, priority = $3, summary = $4, updated_at = NOW() 
+         WHERE ticket_id = $5`,
+        [ticket.status, ticket.issue_type, ticket.priority, ticket.summary, cleanId]
+      );
+    } catch (err) {
+      console.warn('Failed to update ticket in PostgreSQL:', err);
+    }
+  }
+
+  const { ticketsMap } = getIndexedStore();
+  ticketsMap.set(cleanId, ticket);
+}
+
 export async function getTicketById(ticketId: string): Promise<TicketRecord | null> {
   if (!ticketId) return null;
   const cleanId = ticketId.trim().toUpperCase();
