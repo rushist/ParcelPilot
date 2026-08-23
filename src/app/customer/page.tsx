@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { CustomerSession } from '@/types';
 import { AccountRecord, TicketRecord } from '@/db/schema';
@@ -16,12 +15,6 @@ export default function CustomerChatPage() {
   const [tickets, setTickets] = useState<TicketRecord[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-
-  // Ticket creation modal state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newSubject, setNewSubject] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [creatingTicket, setCreatingTicket] = useState(false);
 
   // Load all available accounts
   useEffect(() => {
@@ -66,37 +59,15 @@ export default function CustomerChatPage() {
     return () => clearInterval(interval);
   }, [selectedAccountId]);
 
-  const handleCreateTicket = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSubject.trim() || creatingTicket) return;
+  // Handle clicking "NEW" chat - directly opens new chat without popups and prevents multiple empty chats
+  const handleOpenNewChat = () => {
+    if (selectedTicketId === 'new') return; // Already in new chat mode
+    setSelectedTicketId('new');
+  };
 
-    setCreatingTicket(true);
-    try {
-      const res = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          account_id: selectedAccountId,
-          subject: newSubject.trim(),
-          description: newDescription.trim() || newSubject.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.ticket) {
-        setTickets((prev) => [data.ticket, ...prev.filter((t) => t.ticket_id !== data.ticket.ticket_id)]);
-        setSelectedTicketId(data.ticket.ticket_id);
-        setShowCreateModal(false);
-        setNewSubject('');
-        setNewDescription('');
-      } else {
-        alert(data.error || 'Failed to create ticket.');
-      }
-    } catch (err: any) {
-      alert(err.message || 'Network error creating ticket.');
-    } finally {
-      setCreatingTicket(false);
-    }
+  const handleTicketCreated = (newTicket: TicketRecord) => {
+    setTickets((prev) => [newTicket, ...prev.filter((t) => t.ticket_id !== newTicket.ticket_id)]);
+    setSelectedTicketId(newTicket.ticket_id);
   };
 
   const activeAccount = accounts.find((a) => a.account_id === selectedAccountId) || accounts[0] || {
@@ -107,15 +78,17 @@ export default function CustomerChatPage() {
     contract_file: 'DOC-AGREEMENT-NORTHSTAR.md',
   };
 
-  const activeTicket = tickets.find((t) => t.ticket_id === selectedTicketId) || null;
+  const isNewChat = selectedTicketId === 'new';
+  const activeTicket = !isNewChat ? tickets.find((t) => t.ticket_id === selectedTicketId) || null : null;
 
   const session: CustomerSession = {
     surface: 'customer',
     account_id: selectedAccountId,
-    ticket_id: selectedTicketId || undefined,
+    ticket_id: selectedTicketId && selectedTicketId !== 'new' ? selectedTicketId : undefined,
   };
 
   const suggestedPrompts = [
+    'Shipment was delivered but not updated and payment was done',
     'What is our governing SLA target under our enterprise agreement?',
     'What is the cancellation fee for order ORD-1003?',
     'Can you list all my recent orders and delivery statuses?',
@@ -183,7 +156,10 @@ export default function CustomerChatPage() {
             </span>
             <select
               value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(e.target.value)}
+              onChange={(e) => {
+                setSelectedAccountId(e.target.value);
+                setSelectedTicketId(null);
+              }}
               disabled={loadingAccounts}
               className="bg-[#141414] border border-[#2A2A2A] text-xs text-white rounded-full px-3.5 py-1.5 focus:outline-none focus:border-white font-medium shadow-sm max-w-[200px]"
             >
@@ -212,19 +188,43 @@ export default function CustomerChatPage() {
                 </span>
               </div>
 
-              {/* Plus Button for New Request / Ticket */}
+              {/* Plus Button for New Request - Direct action, no popup */}
               <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-white hover:text-black border border-[#2D2D2D] text-zinc-300 text-xs font-semibold transition shadow-xs group cursor-pointer"
+                onClick={handleOpenNewChat}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition shadow-xs group cursor-pointer ${
+                  isNewChat
+                    ? 'bg-white text-black border-white'
+                    : 'bg-[#161616] hover:bg-white hover:text-black border-[#2D2D2D] text-zinc-300'
+                }`}
                 title="Create new support request"
               >
-                <MaterialIcon name="add" className="text-sm text-zinc-400 group-hover:text-black" />
+                <MaterialIcon name="add" className={`text-sm ${isNewChat ? 'text-black' : 'text-zinc-400 group-hover:text-black'}`} />
                 <span className="text-[10px] font-bitcount">NEW</span>
               </button>
             </div>
 
             {/* Conversation Threads List */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {/* Active Draft / New Request Thread Indicator (Only shown if currently in new chat mode) */}
+              {isNewChat && (
+                <div
+                  className="p-3 rounded-xl border border-white bg-white text-black shadow-md space-y-1.5 cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bitcount font-extrabold text-[11px] flex items-center gap-1.5 text-black">
+                      <MaterialIcon name="add_comment" className="text-xs text-black" />
+                      <span>NEW INQUIRY</span>
+                    </span>
+                    <span className="text-[9px] font-bitcount font-bold px-1.5 py-0.2 rounded bg-black/10 text-black border border-black/20 animate-pulse">
+                      DRAFTING
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-800 font-medium">
+                    Write query below to register &amp; triage request
+                  </p>
+                </div>
+              )}
+
               {/* General Account Channel Thread */}
               <div
                 onClick={() => setSelectedTicketId(null)}
@@ -327,130 +327,26 @@ export default function CustomerChatPage() {
             key={`${selectedAccountId}_${selectedTicketId || 'main'}`}
             session={session}
             title={
-              activeTicket
+              isNewChat
+                ? 'New Support Request'
+                : activeTicket
                 ? `Inquiry ${activeTicket.ticket_id}`
                 : `${activeAccount.account_name} Assistant`
             }
             subtitle={
-              activeTicket
+              isNewChat
+                ? 'Type your query below. AI will automatically evaluate severity and resolve or escalate.'
+                : activeTicket
                 ? `${activeTicket.priority || 'P2'} Severity &bull; ${activeTicket.subject}`
                 : `Account-scoped support engine for ${activeAccount.account_id}`
             }
             accountId={activeAccount.account_id}
             ticketId={selectedTicketId || undefined}
             suggestedPrompts={suggestedPrompts}
+            onTicketCreated={handleTicketCreated}
           />
         </main>
       </div>
-
-      {/* Interactive Create Support Request Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 font-google-sans">
-            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-white/10 text-white flex items-center justify-center">
-                  <MaterialIcon name="confirmation_number" className="text-base text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-white">Create New Support Request</h3>
-                  <p className="text-[11px] text-zinc-400 font-mono">{activeAccount.account_name} &bull; {activeAccount.account_id}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                disabled={creatingTicket}
-                className="text-zinc-400 hover:text-white p-1"
-              >
-                <MaterialIcon name="close" className="text-sm" />
-              </button>
-            </div>
-
-            {/* AI Triage Pulse State while submitting */}
-            {creatingTicket && (
-              <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-200 text-xs flex items-center gap-2.5 animate-pulse">
-                <MaterialIcon name="auto_awesome" className="text-base text-amber-400 shrink-0" />
-                <div>
-                  <div className="font-bold text-amber-300">AI Triage Engine Active</div>
-                  <div className="text-[11px] text-amber-200/80">Evaluating incident severity against SOP v4 &amp; SLA terms...</div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateTicket} className="space-y-3.5">
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                  Subject / Issue Topic <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  disabled={creatingTicket}
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                  placeholder="e.g. Order ORD-1003 Delayed Pickup or CSV Upload Error"
-                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-white rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition disabled:opacity-50"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                  Contract Plan
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={`${activeAccount.plan} Tier`}
-                  className="w-full bg-[#141414] border border-[#222222] rounded-xl px-3 py-2 text-xs text-zinc-400 cursor-not-allowed font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                  Description &amp; Details
-                </label>
-                <textarea
-                  rows={3}
-                  disabled={creatingTicket}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Provide tracking numbers, error messages, or affected order IDs..."
-                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-white rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition resize-none disabled:opacity-50"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#222222]">
-                <button
-                  type="button"
-                  disabled={creatingTicket}
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-1.5 rounded-full text-xs text-zinc-400 hover:text-white bg-[#1A1A1A] hover:bg-[#222222] border border-[#2F2F2F] transition font-medium disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingTicket || !newSubject.trim()}
-                  className="px-4 py-1.5 rounded-full text-xs font-semibold text-black bg-white hover:bg-zinc-200 transition shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {creatingTicket ? (
-                    <>
-                      <MaterialIcon name="sync" className="text-xs animate-spin" />
-                      <span>Triaging &amp; Logging...</span>
-                    </>
-                  ) : (
-                    <>
-                      <MaterialIcon name="send" className="text-xs" filled />
-                      <span>Submit Request</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

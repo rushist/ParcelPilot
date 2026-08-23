@@ -53,6 +53,7 @@ export function ChatInterface({
   suggestedPrompts = [],
   onSelectTicketPrompt,
   onTicketClosed,
+  onTicketCreated,
 }: {
   session: SessionContext;
   title: string;
@@ -62,6 +63,7 @@ export function ChatInterface({
   suggestedPrompts?: string[];
   onSelectTicketPrompt?: (query: string) => void;
   onTicketClosed?: (ticketId: string) => void;
+  onTicketCreated?: (ticket: TicketRecord) => void;
 }) {
   const isInternal = session.surface === 'internal';
   const effectiveAccountId = session.surface === 'customer' ? session.account_id : accountId;
@@ -281,16 +283,22 @@ export function ChatInterface({
           session: {
             ...session,
             account_id: effectiveAccountId,
-            ticket_id: effectiveTicketId,
+            ticket_id: effectiveTicketId === 'new' ? undefined : effectiveTicketId,
           },
           message: messageContent,
           history: historyPayload,
+          ticket_id: effectiveTicketId === 'new' ? undefined : effectiveTicketId,
+          create_new_ticket: !isInternal && (effectiveTicketId === 'new' || !effectiveTicketId),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to get agent response.');
+      }
+
+      if (data.created_ticket && onTicketCreated) {
+        onTicketCreated(data.created_ticket);
       }
 
       const isSecurityOrTrap =

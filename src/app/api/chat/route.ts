@@ -7,6 +7,7 @@ import {
   clearAccountChatMessages,
   StoredChatMessage,
 } from '@/lib/chat-store';
+import { createTicketRecord, getAccountById } from '@/lib/data-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +36,99 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
+function triageTicketPriority(message: string): 'P1' | 'P2' | 'P3' {
+  const text = message.toLowerCase();
+  // P1 - Critical Outage, Security Incident, Platform Failure
+  if (
+    text.includes('outage') ||
+    text.includes('500') ||
+    text.includes('system down') ||
+    text.includes('security') ||
+    text.includes('token leak') ||
+    text.includes('credential') ||
+    text.includes('emergency') ||
+    text.includes('production down') ||
+    text.includes('all shipment creation') ||
+    text.includes('all creation fail')
+  ) {
+    return 'P1';
+  }
+
+  // P2 - Operational Delay, Carrier Discrepancy, Damage, Theft, Rerouting
+  if (
+    text.includes('delay') ||
+    text.includes('late') ||
+    text.includes('missed') ||
+    text.includes('stuck') ||
+    text.includes('swiftship') ||
+    text.includes('pickup') ||
+    text.includes('damage') ||
+    text.includes('broken') ||
+    text.includes('stolen') ||
+    text.includes('theft') ||
+    text.includes('reroute') ||
+    text.includes('redirect') ||
+    text.includes('webhook') ||
+    text.includes('timeout') ||
+    text.includes('breach') ||
+    text.includes('urgent') ||
+    text.includes('delivered but') ||
+    text.includes('not updated')
+  ) {
+    return 'P2';
+  }
+
+  // P3 - Standard inquiries, general tracking, fee calculations, documentation
+  return 'P3';
+}
+
+function deriveSubjectFromMessage(message: string): string {
+  const text = message.toLowerCase();
+  const ordMatch = message.match(/ORD-\d+/i);
+  const ordSuffix = ordMatch ? ` (${ordMatch[0].toUpperCase()})` : '';
+
+  if (text.includes('delivered') && (text.includes('not updated') || text.includes('payment') || text.includes('paid'))) {
+    return `Delivered Shipment & Payment Status Sync${ordSuffix}`;
+  }
+  if (text.includes('cancel') || text.includes('cancellation')) {
+    return `Cancellation Request${ordSuffix}`;
+  }
+  if (text.includes('credit') || text.includes('refund') || text.includes('concession')) {
+    return `Service Credit & Delay Compensation${ordSuffix}`;
+  }
+  if (text.includes('damage') || text.includes('broken') || text.includes('leaked') || text.includes('crushed')) {
+    return `Physical Cargo Damage Appraisal${ordSuffix}`;
+  }
+  if (text.includes('stolen') || text.includes('theft') || text.includes('pilferage')) {
+    return `Stolen / Missing Cargo Investigation${ordSuffix}`;
+  }
+  if (text.includes('reroute') || text.includes('address change') || text.includes('redirect')) {
+    return `Mid-Transit Cargo Redirection${ordSuffix}`;
+  }
+  if (text.includes('outage') || text.includes('500') || text.includes('down')) {
+    return `Platform & Carrier Outage Triage`;
+  }
+  if (text.includes('swiftship') || text.includes('pickup')) {
+    return `SwiftShip Pickup Status Lag${ordSuffix}`;
+  }
+  if (text.includes('bulk') || text.includes('csv')) {
+    return `Bulk CSV Upload Processing Limits`;
+  }
+  if (text.includes('sla') || text.includes('contract')) {
+    return `Contractual SLA & Support Terms`;
+  }
+  if (text.includes('orders') || text.includes('shipment')) {
+    return `Shipment Manifest & Tracking Inquiry`;
+  }
+
+  const cleaned = message.replace(/\n+/g, ' ').slice(0, 48).trim();
+  return cleaned ? `${cleaned}...` : 'Support Inquiry';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { session, message, history, ticket_id } = body;
+    const { session, message, history, ticket_id, create_new_ticket } = body;
 
     if (!session || !session.surface) {
       return NextResponse.json(
@@ -54,11 +144,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sessionContext: SessionContext = session;
     const accountId = (session as any).account_id || 'ACCT-001';
-    const ticketId = ticket_id || (session as any).ticket_id || undefined;
     const isInternal = session.surface === 'internal';
     const userRole = isInternal ? (session as any).role || 'support' : 'customer';
+
+    let effectiveTicketId = ticket_id || (session as any).ticket_id || undefined;
+    let newlyCreatedTicket: any = null;
+    let autoPriority: 'P1' | 'P2' | 'P3' = 'P3';
+
+    // Auto-create ticket if in "new chat" mode on customer surface without needing a popup modal
+    if (!isInternal && (create_new_ticket || !effectiveTicketId || effectiveTicketId === 'new' || effectiveTicketId === 'draft')) {
+      autoPriority = triageTicketPriority(message);
+      const subject = deriveSubjectFromMessage(message);
+
+      newlyCreatedTicket = await createTicketRecord({
+        account_id: accountId,
+        subject,
+        description: message.trim(),
+        priority: autoPriority,
+        status: 'open',
+      });
+
+      effectiveTicketId = newlyCreatedTicket.ticket_id;
+    }
+
+    const sessionContext: SessionContext = {
+      ...session,
+      account_id: accountId,
+      ticket_id: effectiveTicketId,
+    };
 
     const now = new Date();
     const timeLabel = now.toLocaleTimeString([], {
@@ -77,7 +191,7 @@ export async function POST(req: NextRequest) {
     const userStoredMsg: StoredChatMessage = {
       id: `usr-${Date.now()}`,
       account_id: accountId,
-      ticket_id: ticketId,
+      ticket_id: effectiveTicketId,
       role: isInternal ? 'staff' : 'user',
       content: message,
       timestamp: now.toISOString(),
@@ -91,7 +205,7 @@ export async function POST(req: NextRequest) {
         : `${session.account_id} CUSTOMER`,
       isDirectReply,
     };
-    addAccountChatMessage(accountId, userStoredMsg, ticketId);
+    addAccountChatMessage(accountId, userStoredMsg, effectiveTicketId);
 
     // Index staff resolution into RAG operational memory and return immediately without redundant bot echo
     if (isDirectReply) {
@@ -99,7 +213,7 @@ export async function POST(req: NextRequest) {
       try {
         const { learnOpsResolution } = await import('@/retrieval/operational-memory');
         await learnOpsResolution({
-          ticketId: ticketId || 'TKT-501',
+          ticketId: effectiveTicketId || 'TKT-501',
           accountId,
           problem: `Live Incident Support for ${accountId}`,
           resolution: cleanMsg,
@@ -115,6 +229,9 @@ export async function POST(req: NextRequest) {
         tool_traces: [],
         sources: [],
         isDirectReply: true,
+        ticket_id: effectiveTicketId,
+        created_ticket: newlyCreatedTicket,
+        evaluated_priority: autoPriority,
       });
     }
 
@@ -132,7 +249,7 @@ export async function POST(req: NextRequest) {
     const botStoredMsg: StoredChatMessage = {
       id: `bot-${Date.now() + 1}`,
       account_id: accountId,
-      ticket_id: ticketId,
+      ticket_id: effectiveTicketId,
       role: 'assistant',
       content: response.message,
       timestamp: new Date().toISOString(),
@@ -151,9 +268,14 @@ export async function POST(req: NextRequest) {
       proposed_action: response.proposed_action,
       isSecurityAlert: !!response.trap_scan?.traps?.some((t) => t.type === 'PROMPT_INJECTION' || t.severity === 'CRITICAL'),
     };
-    addAccountChatMessage(accountId, botStoredMsg, ticketId);
+    addAccountChatMessage(accountId, botStoredMsg, effectiveTicketId);
 
-    return NextResponse.json(response);
+    return NextResponse.json({
+      ...response,
+      ticket_id: effectiveTicketId,
+      created_ticket: newlyCreatedTicket,
+      evaluated_priority: autoPriority,
+    });
   } catch (error: any) {
     console.error('[API /api/chat error]', error);
     return NextResponse.json(
