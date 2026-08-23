@@ -59,13 +59,17 @@ export async function ingestDocuments() {
   }
 
   // Save to static JSON cache
-  const dataDir = path.join(__dirname, '../src/data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  try {
+    const dataDir = path.join(__dirname, '../src/data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const jsonPath = path.join(dataDir, 'doc-chunks.json');
+    fs.writeFileSync(jsonPath, JSON.stringify(enrichedChunks, null, 2), 'utf8');
+    console.log(`✔ Saved ${enrichedChunks.length} chunks with embeddings to src/data/doc-chunks.json`);
+  } catch (fsErr: any) {
+    console.warn(`Notice: Could not overwrite local doc-chunks.json (${fsErr.message}). Continuing with database ingestion.`);
   }
-  const jsonPath = path.join(dataDir, 'doc-chunks.json');
-  fs.writeFileSync(jsonPath, JSON.stringify(enrichedChunks, null, 2), 'utf8');
-  console.log(`✔ Saved ${enrichedChunks.length} chunks with embeddings to src/data/doc-chunks.json`);
 
   // Insert into PostgreSQL if connected
   const dbHealth = await checkDbConnection();

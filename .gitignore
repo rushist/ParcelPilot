@@ -5,7 +5,6 @@
 
 # Testing
 /coverage
-tests/
 *.tsbuildinfo
 
 # Next.js
