@@ -19,11 +19,22 @@ import {
 import { ChatInterface, MessageItem } from '@/components/chat/ChatInterface';
 import { InternalSession, InternalRole } from '@/types';
 import { AccountRecord } from '@/db/schema';
+import { MaterialIcon } from '@/components/ui/MaterialIcon';
 
-interface ChatTab {
+export interface TicketTab {
+  id: string; // 'overview' or 'TKT-501'
+  title: string;
+  ticketId?: string;
+  status?: string;
+  badgeColor?: string;
+}
+
+export interface TenantWorkspace {
   id: string;
   title: string;
   accountId?: string;
+  activeTicketTabId?: string;
+  ticketTabs: TicketTab[];
   messages: MessageItem[];
 }
 
@@ -45,17 +56,35 @@ export default function InternalChatPage() {
   const [showProactiveBanner, setShowProactiveBanner] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Multi-tab state
-  const [tabs, setTabs] = useState<ChatTab[]>([
+  // Multi-tenant & Nested Ticket Tab Workspace State
+  const [tabs, setTabs] = useState<TenantWorkspace[]>([
     {
       id: 'tab-global',
       title: 'Global Investigation',
+      activeTicketTabId: 'overview',
+      ticketTabs: [{ id: 'overview', title: 'Global Overview' }],
       messages: [],
     },
     {
       id: 'tab-acct-001',
       title: 'ACCT-001 • Northstar',
       accountId: 'ACCT-001',
+      activeTicketTabId: 'TKT-501',
+      ticketTabs: [
+        { id: 'overview', title: 'Feed & Overview' },
+        { id: 'TKT-501', title: 'TKT-501: Bulk CSV Outage', ticketId: 'TKT-501', status: 'P1 BREACH', badgeColor: 'bg-rose-500' },
+      ],
+      messages: [],
+    },
+    {
+      id: 'tab-acct-005',
+      title: 'ACCT-005 • Axis Labs',
+      accountId: 'ACCT-005',
+      activeTicketTabId: 'TKT-505',
+      ticketTabs: [
+        { id: 'overview', title: 'Feed & Overview' },
+        { id: 'TKT-505', title: 'TKT-505: API Key Exposure', ticketId: 'TKT-505', status: 'P1 CRITICAL', badgeColor: 'bg-rose-500' },
+      ],
       messages: [],
     },
   ]);
@@ -102,14 +131,25 @@ export default function InternalChatPage() {
   }, [showAccountDropdown]);
 
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+  const activeTicketTabId = activeTab.activeTicketTabId || 'overview';
+  const effectiveTicketId = activeTicketTabId === 'overview' ? undefined : activeTicketTabId;
 
   const session: InternalSession = {
     surface: 'internal',
     role,
     user_name: userName,
+    account_id: activeTab.accountId,
+    ticket_id: effectiveTicketId,
   };
 
-  const suggestedPrompts = activeTab.accountId
+  const suggestedPrompts = effectiveTicketId
+    ? [
+        `Check SLA status, governing contract, and resolve ticket ${effectiveTicketId}.`,
+        `What is the root cause and carrier failure behind ${effectiveTicketId}?`,
+        `Evaluate service credit or fee waiver for ticket ${effectiveTicketId}.`,
+        `/reply We have applied the operational fix for ${effectiveTicketId}, closing ticket.`,
+      ]
+    : activeTab.accountId
     ? [
         `Check status and fee calculation for recent orders on ${activeTab.accountId}.`,
         `Are there open tickets or SLA risks for ${activeTab.accountId}?`,
@@ -122,8 +162,8 @@ export default function InternalChatPage() {
         'How many customers are affected by known issue KI-208 (bulk upload failures)?',
         'Triage all security and exposed credential incidents across the platform.',
         'Check SLA status and governing contract for ticket TKT-501 (Northstar).',
+        'Check SLA status and governing contract for ticket TKT-505 (Axis Labs).',
         'Evaluate service credit eligibility for order ORD-2002 (LumenWorks).',
-        'Propose an escalation for ticket TKT-505 (Axis Labs API key exposure).',
       ];
 
   const handleCreateNewTab = (account?: AccountRecord) => {
@@ -135,10 +175,21 @@ export default function InternalChatPage() {
       return;
     }
 
-    const newTab: ChatTab = {
+    const defaultTickets: TicketTab[] = [{ id: 'overview', title: 'Feed & Overview' }];
+    if (account?.account_id === 'ACCT-001') {
+      defaultTickets.push({ id: 'TKT-501', title: 'TKT-501: Bulk CSV Outage', ticketId: 'TKT-501', status: 'P1 BREACH', badgeColor: 'bg-rose-500' });
+    } else if (account?.account_id === 'ACCT-005') {
+      defaultTickets.push({ id: 'TKT-505', title: 'TKT-505: API Key Exposure', ticketId: 'TKT-505', status: 'P1 CRITICAL', badgeColor: 'bg-rose-500' });
+    } else if (account?.account_id === 'ACCT-002') {
+      defaultTickets.push({ id: 'TKT-502', title: 'TKT-502: Pickup Delayed', ticketId: 'TKT-502', status: 'AT RISK', badgeColor: 'bg-amber-500' });
+    }
+
+    const newTab: TenantWorkspace = {
       id: tabId,
       title: account ? `${account.account_id} • ${account.account_name.split(' ')[0]}` : `Investigation #${tabs.length + 1}`,
       accountId: account ? account.account_id : undefined,
+      activeTicketTabId: defaultTickets.length > 1 ? defaultTickets[1].id : 'overview',
+      ticketTabs: defaultTickets,
       messages: [],
     };
 
@@ -158,6 +209,53 @@ export default function InternalChatPage() {
     if (activeTabId === tabIdToClose) {
       setActiveTabId(newTabs[0].id);
     }
+  };
+
+  // Open a specific Ticket Sub-Tab under a Tenant
+  const handleOpenTicketSubTab = (ticketId: string, subject?: string) => {
+    setTabs((prev) =>
+      prev.map((t) => {
+        if (t.id === activeTabId) {
+          const alreadyExists = t.ticketTabs.some((sub) => sub.id === ticketId);
+          const updatedTicketTabs = alreadyExists
+            ? t.ticketTabs
+            : [
+                ...t.ticketTabs,
+                {
+                  id: ticketId,
+                  title: `${ticketId}${subject ? `: ${subject.slice(0, 18)}...` : ''}`,
+                  ticketId,
+                  status: 'ACTIVE',
+                  badgeColor: 'bg-rose-500',
+                },
+              ];
+          return {
+            ...t,
+            ticketTabs: updatedTicketTabs,
+            activeTicketTabId: ticketId,
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  // Close a specific Ticket Sub-Tab
+  const handleCloseTicketTab = (tenantTabId: string, ticketIdToClose: string) => {
+    setTabs((prev) =>
+      prev.map((t) => {
+        if (t.id === tenantTabId) {
+          const newTicketTabs = t.ticketTabs.filter((sub) => sub.id !== ticketIdToClose);
+          const fallbackActive = newTicketTabs.length > 0 ? newTicketTabs[0].id : 'overview';
+          return {
+            ...t,
+            ticketTabs: newTicketTabs.length > 0 ? newTicketTabs : [{ id: 'overview', title: 'Feed & Overview' }],
+            activeTicketTabId: t.activeTicketTabId === ticketIdToClose ? fallbackActive : t.activeTicketTabId,
+          };
+        }
+        return t;
+      })
+    );
   };
 
   const filteredAccounts = accounts.filter(
@@ -377,14 +475,104 @@ export default function InternalChatPage() {
         </div>
       </div>
 
+      {/* Level 2: Nested Ticket Sub-Tabs (Under Active Tenant Workspace) */}
+      <div className="w-full border-b border-[#1D1D1D] bg-[#0A0A0A] px-4 sm:px-6 lg:px-8 py-1.5 shrink-0 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto py-0.5 flex-1 min-w-0 pr-2">
+          <span className="text-[10px] font-bitcount font-semibold text-zinc-500 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+            <MaterialIcon name="folder_open" className="text-xs text-zinc-400" />
+            <span>{activeTab.accountId ? `${activeTab.accountId} REQUESTS:` : 'RADAR VIEWS:'}</span>
+          </span>
+
+          {activeTab.ticketTabs.map((subTab) => {
+            const isActive = activeTicketTabId === subTab.id;
+            return (
+              <button
+                key={subTab.id}
+                onClick={() => {
+                  setTabs((prev) =>
+                    prev.map((t) => (t.id === activeTabId ? { ...t, activeTicketTabId: subTab.id } : t))
+                  );
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition border shrink-0 ${
+                  isActive
+                    ? 'bg-[#222222] text-white border-zinc-500 shadow-xs font-semibold'
+                    : 'bg-[#121212] border-[#222222] text-zinc-400 hover:bg-[#1A1A1A] hover:text-zinc-200'
+                }`}
+              >
+                {subTab.status && (
+                  <span
+                    className={`text-[9px] px-1.5 py-0.2 rounded font-bitcount font-bold ${
+                      subTab.status.includes('BREACH') || subTab.status.includes('CRITICAL')
+                        ? 'bg-rose-950/70 text-rose-300 border border-rose-800/80'
+                        : 'bg-amber-950/70 text-amber-300 border border-amber-800/80'
+                    }`}
+                  >
+                    {subTab.status}
+                  </span>
+                )}
+                <span>{subTab.title}</span>
+
+                {subTab.id !== 'overview' && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloseTicketTab(activeTab.id, subTab.id);
+                    }}
+                    className="p-0.5 rounded hover:bg-white/20 ml-1 text-zinc-500 hover:text-white transition"
+                    title="Close ticket tab"
+                  >
+                    <MaterialIcon name="close" className="text-xs" />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab.accountId && (
+          <button
+            onClick={() => {
+              const newTktNum = Math.floor(506 + Math.random() * 400);
+              handleOpenTicketSubTab(`TKT-${newTktNum}`, 'New Inquiry');
+            }}
+            className="flex items-center gap-1 text-[11px] font-bitcount text-zinc-400 hover:text-white bg-[#141414] hover:bg-[#1E1E1E] border border-[#2B2B2B] px-2.5 py-1 rounded-lg transition shrink-0"
+            title="Open new ticket sub-tab"
+          >
+            <MaterialIcon name="add" className="text-xs" />
+            <span className="hidden sm:inline">New Request</span>
+          </button>
+        )}
+      </div>
+
       {/* Full-width Main Chat Interface */}
       <main className="flex-1 min-h-0 flex flex-col w-full overflow-hidden">
         <ChatInterface
+          key={`${activeTab.id}-${activeTicketTabId}`}
           session={session}
-          title={activeTab.title}
-          subtitle={`Role: ${role.toUpperCase()} • ${activeTab.accountId ? `Focused on ${activeTab.accountId}` : 'Cross-account investigation & proactive triage'}`}
+          title={
+            effectiveTicketId
+              ? `${activeTab.title} • Ticket ${effectiveTicketId}`
+              : activeTab.title
+          }
+          subtitle={`Role: ${role.toUpperCase()} • ${
+            effectiveTicketId
+              ? `Scoped to Ticket ${effectiveTicketId} (${activeTab.accountId || 'Tenant'})`
+              : activeTab.accountId
+              ? `Focused on ${activeTab.accountId}`
+              : 'Cross-account investigation & proactive triage'
+          }`}
           accountId={activeTab.accountId}
+          ticketId={effectiveTicketId}
           suggestedPrompts={suggestedPrompts}
+          onSelectTicketPrompt={(query) => {
+            const tktMatch = query.match(/TKT-\d+/i);
+            if (tktMatch) {
+              handleOpenTicketSubTab(tktMatch[0].toUpperCase());
+            }
+          }}
+          onTicketClosed={(closedTkt) => {
+            handleCloseTicketTab(activeTab.id, closedTkt);
+          }}
         />
       </main>
     </div>

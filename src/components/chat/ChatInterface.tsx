@@ -49,18 +49,23 @@ export function ChatInterface({
   title,
   subtitle,
   accountId,
+  ticketId,
   suggestedPrompts = [],
   onSelectTicketPrompt,
+  onTicketClosed,
 }: {
   session: SessionContext;
   title: string;
   subtitle: string;
   accountId?: string;
+  ticketId?: string;
   suggestedPrompts?: string[];
   onSelectTicketPrompt?: (query: string) => void;
+  onTicketClosed?: (ticketId: string) => void;
 }) {
   const isInternal = session.surface === 'internal';
   const effectiveAccountId = session.surface === 'customer' ? session.account_id : accountId;
+  const effectiveTicketId = session.ticket_id || ticketId;
 
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [input, setInput] = useState('');
@@ -259,7 +264,11 @@ export function ChatInterface({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          session,
+          session: {
+            ...session,
+            account_id: effectiveAccountId,
+            ticket_id: effectiveTicketId,
+          },
           message: messageContent,
           history: historyPayload,
         }),
@@ -1100,12 +1109,14 @@ export function ChatInterface({
               <button
                 onClick={() => {
                   setShowCloseModal(false);
-                  handleSendMessage('/close');
-                  setAccountTickets((prev) => prev.filter((t) => t.ticket_id !== 'TKT-501' && (!effectiveAccountId || t.account_id !== effectiveAccountId)));
+                  const targetTkt = effectiveTicketId || 'TKT-501';
+                  handleSendMessage(`/close ${targetTkt}`);
+                  setAccountTickets((prev) => prev.filter((t) => t.ticket_id !== targetTkt && (!effectiveAccountId || t.account_id !== effectiveAccountId)));
                   setRadarData((prev) => ({
                     ...prev,
-                    slaItems: prev.slaItems.filter((i) => i.ticket_id !== 'TKT-501' && (!effectiveAccountId || i.account_id !== effectiveAccountId)),
+                    slaItems: prev.slaItems.filter((i) => i.ticket_id !== targetTkt && (!effectiveAccountId || i.account_id !== effectiveAccountId)),
                   }));
+                  if (onTicketClosed) onTicketClosed(targetTkt);
                 }}
                 className="px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-md shadow-rose-950/50 transition flex items-center gap-1.5"
               >

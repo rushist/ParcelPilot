@@ -4,12 +4,15 @@ export type InternalRole = 'support' | 'ops' | 'manager';
 export interface CustomerSession {
   surface: 'customer';
   account_id: string;
+  ticket_id?: string;
 }
 
 export interface InternalSession {
   surface: 'internal';
   role: InternalRole;
   user_name: string;
+  account_id?: string;
+  ticket_id?: string;
 }
 
 export type SessionContext = CustomerSession | InternalSession;

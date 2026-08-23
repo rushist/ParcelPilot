@@ -325,7 +325,20 @@ async function runDeterministicAgentTurn(
     ) {
       turnCount++;
       const tktMatch = query.match(/TKT-\d+/i);
-      const targetId = tktMatch ? tktMatch[0].toUpperCase() : 'TKT-501';
+      let targetId = tktMatch ? tktMatch[0].toUpperCase() : undefined;
+      if (!targetId && (session as any).ticket_id) {
+        targetId = (session as any).ticket_id;
+      }
+      if (!targetId && (session as any).account_id) {
+        try {
+          const { getTicketsByAccount } = await import('../../lib/data-store');
+          const accTkts = await getTicketsByAccount((session as any).account_id);
+          if (accTkts.length > 0) {
+            targetId = accTkts[0].ticket_id;
+          }
+        } catch (e) {}
+      }
+      if (!targetId) targetId = 'TKT-501';
 
       const propRes = await dispatchToolCall(session, 'propose_action', {
         type: 'escalation',
@@ -361,7 +374,20 @@ async function runDeterministicAgentTurn(
       queryLower.includes('close request')
     ) {
       const tktMatch = query.match(/TKT-\d+/i);
-      const ticketId = tktMatch ? tktMatch[0].toUpperCase() : 'TKT-501';
+      let ticketId = tktMatch ? tktMatch[0].toUpperCase() : undefined;
+      if (!ticketId && (session as any).ticket_id) {
+        ticketId = (session as any).ticket_id;
+      }
+      if (!ticketId && (session as any).account_id) {
+        try {
+          const { getTicketsByAccount } = await import('../../lib/data-store');
+          const accTkts = await getTicketsByAccount((session as any).account_id);
+          if (accTkts.length > 0) {
+            ticketId = accTkts[0].ticket_id;
+          }
+        } catch (e) {}
+      }
+      if (!ticketId) ticketId = 'TKT-501';
 
       turnCount++;
       const propRes = await dispatchToolCall(session, 'propose_action', {
