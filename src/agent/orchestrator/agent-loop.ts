@@ -250,8 +250,32 @@ async function runDeterministicAgentTurn(
   let proposedAction: ProposedActionResponse | undefined;
   let turnCount = 0;
   let isEscalated = false;
-
   try {
+    // ------------------------------------------------------------------------
+    // Scenario -1: Strict Multi-Tenant Isolation & Cross-Account Boundary Guard
+    // ------------------------------------------------------------------------
+    const requestedAccMatch = query.match(/ACCT-\d+/i);
+    if (!isInternal && requestedAccMatch && (session as any).account_id && requestedAccMatch[0].toUpperCase() !== (session as any).account_id.toUpperCase()) {
+      return {
+        message: `### 🛡️ Security Boundary Enforcement: Cross-Tenant Access Prohibited\n\nYou are authenticated as **${session.account_id}**. Cross-tenant access to inspect, modify, or query data for tenant **${requestedAccMatch[0].toUpperCase()}** is strictly forbidden.\n\nAll operational tracking, agreements, and support actions are restricted exclusively to your authenticated organization.`,
+        tool_traces: [],
+        sources: [],
+        turn_count: 1,
+        is_escalated: false,
+        trap_scan: {
+          detected: true,
+          shouldBlock: true,
+          blockReason: `Cross-tenant boundary breach attempt: customer ${(session as any).account_id} queried ${requestedAccMatch[0].toUpperCase()}`,
+          traps: [{
+            type: 'CROSS_TENANT_LEAK',
+            severity: 'CRITICAL',
+            description: `Unauthorized attempt by ${(session as any).account_id} to access data belonging to ${requestedAccMatch[0].toUpperCase()}`,
+            mitigation: 'Block cross-tenant access and isolate query strictly to authenticated tenant context.',
+          }],
+        },
+      };
+    }
+
     // ------------------------------------------------------------------------
     // Scenario 0: Slash Command `/reply` (Direct Staff -> Customer Dispatch)
     // ------------------------------------------------------------------------

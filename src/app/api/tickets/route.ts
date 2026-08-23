@@ -30,21 +30,67 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function triageTicketPriority(subject: string, description: string = ''): 'P1' | 'P2' | 'P3' {
+  const combined = `${subject} ${description}`.toLowerCase();
+
+  // P1 - Critical Outage / System Down / Security / Bulk Failure
+  if (
+    combined.includes('outage') ||
+    combined.includes('500') ||
+    combined.includes('system down') ||
+    combined.includes('cannot create') ||
+    combined.includes('all creation failing') ||
+    combined.includes('bulk failure') ||
+    combined.includes('validation failure') ||
+    combined.includes('security') ||
+    combined.includes('token leak') ||
+    combined.includes('emergency') ||
+    combined.includes('critical failure') ||
+    combined.includes('production down')
+  ) {
+    return 'P1';
+  }
+
+  // P2 - High Priority: Operational Delay / Carrier SLA Breached / Stuck / Webhook Failure
+  if (
+    combined.includes('delay') ||
+    combined.includes('late') ||
+    combined.includes('missed') ||
+    combined.includes('stuck') ||
+    combined.includes('swiftship') ||
+    combined.includes('pickup') ||
+    combined.includes('webhook') ||
+    combined.includes('timeout') ||
+    combined.includes('breach') ||
+    combined.includes('urgent') ||
+    combined.includes('dispute') ||
+    combined.includes('error')
+  ) {
+    return 'P2';
+  }
+
+  // P3 - Standard: General inquiries, cancellations, quotes, documentation
+  return 'P3';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { account_id, subject, description, priority, category } = body;
+    const { account_id, subject, description, priority } = body;
 
     if (!account_id || !subject) {
       return NextResponse.json({ error: 'account_id and subject are required.' }, { status: 400 });
     }
+
+    // AI determines the actual priority level based on incident severity and SOP policy
+    const autoPriority = priority || triageTicketPriority(subject, description);
 
     const { createTicketRecord } = await import('@/lib/data-store');
     const newTicket = await createTicketRecord({
       account_id,
       subject,
       description: description || subject,
-      priority: priority || 'P2',
+      priority: autoPriority,
       status: 'open',
     });
 

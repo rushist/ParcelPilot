@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import { ChatInterface } from '@/components/chat/ChatInterface';
@@ -19,9 +19,46 @@ export default function CustomerChatPage() {
   // Ticket creation modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSubject, setNewSubject] = useState('');
-  const [newPriority, setNewPriority] = useState('P2');
   const [newDescription, setNewDescription] = useState('');
   const [creatingTicket, setCreatingTicket] = useState(false);
+
+  // Priority is deterministically triaged by the AI rather than customer self-assessment
+  const evaluatedPriority = useMemo(() => {
+    const combined = `${newSubject} ${newDescription}`.toLowerCase();
+    if (
+      combined.includes('outage') ||
+      combined.includes('500') ||
+      combined.includes('system down') ||
+      combined.includes('cannot create') ||
+      combined.includes('all creation failing') ||
+      combined.includes('bulk failure') ||
+      combined.includes('validation failure') ||
+      combined.includes('security') ||
+      combined.includes('token leak') ||
+      combined.includes('emergency') ||
+      combined.includes('critical') ||
+      combined.includes('production down')
+    ) {
+      return { level: 'P1', label: 'P1 - Critical Outage', color: 'rose', icon: 'emergency', badgeBg: 'bg-rose-950/60 border-rose-800/80 text-rose-300' };
+    }
+    if (
+      combined.includes('delay') ||
+      combined.includes('late') ||
+      combined.includes('missed') ||
+      combined.includes('stuck') ||
+      combined.includes('swiftship') ||
+      combined.includes('pickup') ||
+      combined.includes('webhook') ||
+      combined.includes('timeout') ||
+      combined.includes('breach') ||
+      combined.includes('urgent') ||
+      combined.includes('dispute') ||
+      combined.includes('error')
+    ) {
+      return { level: 'P2', label: 'P2 - High Priority', color: 'amber', icon: 'warning', badgeBg: 'bg-amber-950/60 border-amber-800/80 text-amber-300' };
+    }
+    return { level: 'P3', label: 'P3 - Standard Request', color: 'blue', icon: 'info', badgeBg: 'bg-blue-950/60 border-blue-800/80 text-blue-300' };
+  }, [newSubject, newDescription]);
 
   // Load all available accounts
   useEffect(() => {
@@ -76,7 +113,7 @@ export default function CustomerChatPage() {
         body: JSON.stringify({
           account_id: selectedAccountId,
           subject: newSubject.trim(),
-          priority: newPriority,
+          priority: evaluatedPriority.level,
           description: newDescription.trim() || newSubject.trim(),
         }),
       });
@@ -87,7 +124,6 @@ export default function CustomerChatPage() {
         setShowCreateModal(false);
         setNewSubject('');
         setNewDescription('');
-        setNewPriority('P2');
       } else {
         alert(data.error || 'Failed to create ticket.');
       }
@@ -354,18 +390,18 @@ export default function CustomerChatPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                    Priority Level
-                  </label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value)}
-                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-white rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition"
-                  >
-                    <option value="P2">P2 - High Priority</option>
-                    <option value="P1">P1 - Critical Outage</option>
-                    <option value="P3">P3 - Standard Request</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-medium text-zinc-300">
+                      Priority Level
+                    </label>
+                    <span className="text-[9px] font-bitcount font-bold text-amber-400 bg-amber-950/40 px-1.5 py-0.2 rounded border border-amber-900/60">
+                      AI DETERMINED
+                    </span>
+                  </div>
+                  <div className={`w-full bg-[#141414] border rounded-xl px-3 py-2 text-xs flex items-center gap-2 ${evaluatedPriority.badgeBg}`}>
+                    <MaterialIcon name={evaluatedPriority.icon} className="text-sm shrink-0" filled />
+                    <span className="font-semibold">{evaluatedPriority.label}</span>
+                  </div>
                 </div>
 
                 <div>
@@ -376,7 +412,7 @@ export default function CustomerChatPage() {
                     type="text"
                     disabled
                     value={`${activeAccount.plan} Tier`}
-                    className="w-full bg-[#141414] border border-[#222222] rounded-xl px-3 py-2 text-xs text-zinc-500 cursor-not-allowed"
+                    className="w-full bg-[#141414] border border-[#222222] rounded-xl px-3 py-2 text-xs text-zinc-400 cursor-not-allowed font-medium"
                   />
                 </div>
               </div>
