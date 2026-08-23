@@ -45,49 +45,7 @@ function loadChatStore(): Map<string, StoredChatMessage[]> {
     }
   }
 
-  // Pre-seed ACCT-001 with the initial inquiry transcript if empty
-  if (!map.has('ACCT-001') || map.get('ACCT-001')!.length === 0) {
-    map.set('ACCT-001', [
-      {
-        id: 'seed-1',
-        account_id: 'ACCT-001',
-        role: 'user',
-        content: 'My shipment was picked up by SwiftShip but still shows BOOKED. Why?',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        timeLabel: '02:22:21 PM',
-        speakerLabel: 'NORTHSTAR (ACCT-001)',
-      },
-      {
-        id: 'seed-2',
-        account_id: 'ACCT-001',
-        role: 'assistant',
-        content: '**SwiftShip Pickup Confirmation Status:**\n- **Known Delay (KI-211):** SwiftShip webhook callbacks can arrive up to **20 minutes late**. A parcel may have physically been collected by the courier while ParcelPilot still displays **BOOKED**.\n- **Guidance:** Please verify the carrier API status or allow a 20-minute buffer before concluding that pickup was missed.\n\n*Source: Product Operations Guide Section 2 (KI-211).*',
-        timestamp: new Date(Date.now() - 3590000).toISOString(),
-        timeLabel: '02:22:22 PM',
-        speakerLabel: 'PARCELPILOT AI',
-        tool_traces: [
-          {
-            tool: 'search_docs',
-            inputs: { query: 'SwiftShip pickup confirmation delay KI-211' },
-            durationMs: 228,
-            session: { surface: 'customer', account_id: 'ACCT-001' },
-            success: true,
-          },
-        ],
-        sources: [
-          {
-            doc_id: 'DOC-PROD-GUIDE',
-            section: 'Section 2 (KI-211)',
-            title: 'Product Operations Guide: SwiftShip Pickup Webhook Lag',
-            authority_rank: 3,
-            doc_status: 'CURRENT',
-            effective_date: '2024-01-01',
-            text: 'SwiftShip webhook callbacks can arrive up to 20 minutes late.',
-          },
-        ],
-      },
-    ]);
-  }
+
 
   global.__parcelpilotChatStore = map;
   return map;
