@@ -501,7 +501,7 @@ async function runConversationalAgentTurn(
           `### Priority Escalation Staged for ${activeTicketId}\n\n` +
           `I have prepared the priority handover to our Tier-2 Dispatch Operations team.\n\n` +
           `Please click **Connect with Live Specialist** in the right panel to transfer custody immediately.`;
-      } else {
+      } else if (isInternal) {
         const propRes = await dispatchToolCall(session, 'propose_action', {
           type: 'ticket_update',
           target_id: activeTicketId,
@@ -515,6 +515,11 @@ async function runConversationalAgentTurn(
           `### Operational Update Staged for ${activeTicketId}\n\n` +
           `I have queued the status update and reconciliation record for **${activeTicketId}**.\n\n` +
           `Click **Persist Operational Note** in the right panel to record this to the permanent audit ledger and resolve the inquiry.`;
+      } else {
+        responseText =
+          `### Status Inquiry Noted for ${activeTicketId}\n\n` +
+          `I have recorded your request to verify and sync the status for **${activeTicketId}**.\n\n` +
+          `The carrier gateway status will update automatically once the courier webhook callback completes. If you require immediate manual intervention, please reply **"escalate to operations"**.`;
       }
     }
 
@@ -539,33 +544,42 @@ async function runConversationalAgentTurn(
       const targetOrdId = relevantOrder?.order_id || orderId;
       const carrierName = relevantOrder?.carrier || 'SwiftShip Express';
 
-      turnCount++;
-      const propRes = await dispatchToolCall(session, 'propose_action', {
-        type: 'ticket_update',
-        target_id: activeTicketId,
-        reason: `Pickup status sync requested: Physical pickup completed by ${carrierName} for ${targetOrdId}, portal still displaying BOOKED (Known Issue KI-211).`,
-        details: {
-          action: 'PICKUP_STATUS_SYNC',
-          order_id: targetOrdId,
-          carrier: carrierName,
-          ticket_id: activeTicketId,
-          staff_note: `Polled carrier gateway API and confirmed driver collection scan for ${targetOrdId}.`,
-        },
-      });
-      toolTraces.push(propRes.trace);
-      proposedAction = propRes.result;
+      if (isInternal) {
+        turnCount++;
+        const propRes = await dispatchToolCall(session, 'propose_action', {
+          type: 'ticket_update',
+          target_id: activeTicketId,
+          reason: `Pickup status sync requested: Physical pickup completed by ${carrierName} for ${targetOrdId}, portal still displaying BOOKED (Known Issue KI-211).`,
+          details: {
+            action: 'PICKUP_STATUS_SYNC',
+            order_id: targetOrdId,
+            carrier: carrierName,
+            ticket_id: activeTicketId,
+            staff_note: `Polled carrier gateway API and confirmed driver collection scan for ${targetOrdId}.`,
+          },
+        });
+        toolTraces.push(propRes.trace);
+        proposedAction = propRes.result;
 
-      responseText =
-        `### Pickup Status Lag Resolution (${targetOrdId})\n\n` +
-        `I understand that your package was physically collected by the courier driver, but your dashboard still shows **BOOKED** instead of **PICKED_UP**.\n\n` +
-        `**Root Cause & Known Issue Advisory (KI-211):**\n` +
-        `1. **Driver Handheld Webhook Buffer:** Courier partners (such as **${carrierName}**) record pickup scans locally on driver handheld scanners. These collection events batch upload via API webhooks every **15 to 20 minutes** or when the driver completes a dispatch cluster.\n` +
-        `2. **Gateway Synchronization:** Until the webhook packet reaches our system, ParcelPilot safely retains the previous status (\`BOOKED\`) to prevent premature billing events.\n\n` +
-        `**What you can do right now:**\n` +
-        `- **Option 1 (Instant Status Force-Sync):** I have staged a **Status Verification Action** in the right panel for ticket \`${activeTicketId}\`. Click **Persist Operational Note** to immediately poll the carrier API and update the record to \`PICKED_UP\`.\n` +
-        `- **Option 2 (20-Minute Buffer):** If the driver collected the package less than 20 minutes ago, the status will automatically update on the next webhook cycle.\n` +
-        `- **Option 3 (Live Dispatch Escalation):** If the pickup occurred more than 20 minutes ago and status is still lagging, reply **"escalate to operations"** to have our Tier-2 dispatch team verify line-haul custody directly with the depot.\n\n` +
-        `*Source: Product Operations Guide Section 2 (Known Issue KI-211).*`;
+        responseText =
+          `### Pickup Status Lag Resolution (${targetOrdId})\n\n` +
+          `The package was physically collected by **${carrierName}**, but status is lagging at \`BOOKED\`.\n\n` +
+          `- **Diagnosis:** Known Issue \`KI-211\` (15–20 minute driver handheld webhook latency).\n` +
+          `- **Target Ticket:** \`${activeTicketId}\`\n\n` +
+          `I have staged the **Status Verification Action** in the right panel. Click **Persist Operational Note** to sync the carrier gateway and index into RAG memory.`;
+      } else {
+        responseText =
+          `### Pickup Status Lag Resolution (${targetOrdId})\n\n` +
+          `I understand that your package was physically collected by the courier driver, but your dashboard still shows **BOOKED** instead of **PICKED_UP**.\n\n` +
+          `**Root Cause & Known Issue Advisory (KI-211):**\n` +
+          `1. **Driver Handheld Webhook Buffer:** Courier partners (such as **${carrierName}**) record pickup scans locally on driver handheld scanners. These collection events batch upload via API webhooks every **15 to 20 minutes** or when the driver completes a dispatch cluster.\n` +
+          `2. **Gateway Synchronization:** Until the webhook packet reaches our system, ParcelPilot safely retains the previous status (\`BOOKED\`) to prevent premature billing events.\n\n` +
+          `**What you can do right now:**\n` +
+          `- **Option 1 (20-Minute Webhook Buffer):** If the driver collected the package less than 20 minutes ago, the status will automatically update on the next webhook cycle.\n` +
+          `- **Option 2 (Live Dispatch Escalation):** If the pickup occurred more than 20 minutes ago and status is still lagging, reply **"escalate to operations"** to have our Tier-2 dispatch team verify line-haul custody directly with the depot.\n` +
+          `- **Option 3 (View Orders):** Ask **"my orders"** to verify tracking on all shipments.\n\n` +
+          `*Source: Product Operations Guide Section 2 (Known Issue KI-211).*`;
+      }
     }
 
     // ------------------------------------------------------------------------
@@ -591,32 +605,41 @@ async function runConversationalAgentTurn(
       const orders: OrderRecord[] = ordRes.result || [];
       const relevantOrder = orders.find((o) => o.order_id === orderId) || orders[0];
 
-      turnCount++;
-      const propRes = await dispatchToolCall(session, 'propose_action', {
-        type: 'ticket_update',
-        target_id: activeTicketId,
-        reason: `Reconciliation requested: Physical delivery completed and payment confirmed for ${orderId}, pending electronic POD sync from carrier gateway.`,
-        details: {
-          action: 'POD_STATUS_SYNC',
-          order_id: orderId,
-          ticket_id: activeTicketId,
-          staff_note: `Verified electronic delivery status and marked payment reconciliation complete for ${orderId}.`,
-        },
-      });
-      toolTraces.push(propRes.trace);
-      proposedAction = propRes.result;
+      if (isInternal) {
+        turnCount++;
+        const propRes = await dispatchToolCall(session, 'propose_action', {
+          type: 'ticket_update',
+          target_id: activeTicketId,
+          reason: `Reconciliation requested: Physical delivery completed and payment confirmed for ${orderId}, pending electronic POD sync from carrier gateway.`,
+          details: {
+            action: 'POD_STATUS_SYNC',
+            order_id: orderId,
+            ticket_id: activeTicketId,
+            staff_note: `Verified electronic delivery status and marked payment reconciliation complete for ${orderId}.`,
+          },
+        });
+        toolTraces.push(propRes.trace);
+        proposedAction = propRes.result;
 
-      responseText =
-        `### Delivered Shipment & Payment Status Resolution\n\n` +
-        `I understand that your shipment was physically delivered to the recipient and payment has been completed, but the status on your portal is still showing as pending or in-transit.\n\n` +
-        `**Diagnosis & Root Cause:**\n` +
-        `1. **Carrier ePOD Upload Buffer:** Courier partners (SwiftShip / RoadRunner) record handoff signatures electronically on driver handhelds. These upload in batch cycles every **15 to 30 minutes** or when the driver returns to cellular connectivity.\n` +
-        `2. **Payment Settlement Reconciliation:** Invoices and payment confirmation records automatically settle once the carrier's electronic Proof of Delivery (ePOD) timestamp is reconciled in our gateway.\n\n` +
-        `**Resolution Options:**\n` +
-        `- **Option 1 (Automated Sync):** I have staged a **Status Verification Action** in the right panel for ticket \`${activeTicketId}\`. Click **Persist Operational Note** to immediately force-sync the carrier gateway.\n` +
-        `- **Option 2 (Live Dispatch Escalation):** If you require an urgent signed delivery certificate for accounting, reply **"escalate to operations"** to have our Tier-2 dispatch team pull the manifest manually.\n` +
-        `- **Option 3 (View Orders):** Ask **"my orders"** to verify all current package tracking numbers for **${account?.account_name || accountId}**.\n\n` +
-        `*Source: ParcelPilot Carrier Integration SOP & Settlement Protocol (Rank 2 Authority).*`;
+        responseText =
+          `### Delivered Shipment & Payment Status Resolution\n\n` +
+          `- **Target Order:** \`${orderId}\`\n` +
+          `- **Target Ticket:** \`${activeTicketId}\`\n` +
+          `- **Root Cause:** Carrier ePOD batch upload buffer (15–30 min).\n\n` +
+          `I have staged the **POD Status Verification Action** in the right panel. Click **Persist Operational Note** to record this to the permanent audit ledger.`;
+      } else {
+        responseText =
+          `### Delivered Shipment & Payment Status Resolution\n\n` +
+          `I understand that your shipment was physically delivered to the recipient and payment has been completed, but the status on your portal is still showing as pending or in-transit.\n\n` +
+          `**Diagnosis & Root Cause:**\n` +
+          `1. **Carrier ePOD Upload Buffer:** Courier partners (SwiftShip / RoadRunner) record handoff signatures electronically on driver handhelds. These upload in batch cycles every **15 to 30 minutes** or when the driver returns to cellular connectivity.\n` +
+          `2. **Payment Settlement Reconciliation:** Invoices and payment confirmation records automatically settle once the carrier's electronic Proof of Delivery (ePOD) timestamp is reconciled in our gateway.\n\n` +
+          `**Resolution Options:**\n` +
+          `- **Option 1 (ePOD Buffer Allowance):** Courier signature receipts settle automatically once the handheld completes sync.\n` +
+          `- **Option 2 (Live Dispatch Escalation):** If you require an urgent signed delivery certificate for accounting, reply **"escalate to operations"** to have our Tier-2 dispatch team pull the manifest manually.\n` +
+          `- **Option 3 (View Orders):** Ask **"my orders"** to verify all current package tracking numbers for **${account?.account_name || accountId}**.\n\n` +
+          `*Source: ParcelPilot Carrier Integration SOP & Settlement Protocol (Rank 2 Authority).*`;
+      }
     }
 
     // ------------------------------------------------------------------------

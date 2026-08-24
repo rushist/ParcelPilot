@@ -1084,7 +1084,7 @@ export function ChatInterface({
               </div>
 
               {/* Action Proposal Card */}
-              {activeAnalysis.proposedAction && (
+              {activeAnalysis.proposedAction && (isInternal || activeAnalysis.proposedAction.type !== 'ticket_update') && (
                 <div className="animate-in fade-in duration-200">
                   <ConfirmationCard
                     proposal={activeAnalysis.proposedAction}

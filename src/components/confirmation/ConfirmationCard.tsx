@@ -122,8 +122,8 @@ export function ConfirmationCard({
           </div>
         )}
 
-        {/* Dedicated Operational Resolution & Playbook Note input for ticket closure / staff actions */}
-        {proposal.type === 'ticket_update' && status === 'pending' && (
+        {/* Dedicated Operational Resolution & Playbook Note input strictly for internal systems side */}
+        {session.surface === 'internal' && proposal.type === 'ticket_update' && status === 'pending' && (
           <div className="space-y-1.5 pt-2 pb-1 border-t border-[#222222]">
             <div className="flex items-center justify-between">
               <label className="block text-[10px] font-bitcount text-amber-300 uppercase tracking-wider font-semibold">
