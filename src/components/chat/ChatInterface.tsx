@@ -534,7 +534,10 @@ export function ChatInterface({
                           accountTickets.map((tkt) => (
                             <button
                               key={tkt.ticket_id}
-                              onClick={() => handleSendMessage(`Check SLA status, governing contract, and resolve ticket ${tkt.ticket_id}.`)}
+                              onClick={() => {
+                                if (onSelectTicketPrompt) onSelectTicketPrompt(tkt.ticket_id);
+                                handleSendMessage(`Check SLA status, governing contract, and resolve ticket ${tkt.ticket_id}.`);
+                              }}
                               className="w-full text-left p-2.5 rounded-xl bg-[#0F0F0F] hover:bg-[#181818] border border-[#222222] hover:border-[#383838] transition group text-xs space-y-1"
                             >
                               <div className="flex items-center justify-between">

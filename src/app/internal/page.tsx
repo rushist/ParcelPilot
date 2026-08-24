@@ -93,10 +93,11 @@ export default function InternalChatPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [accRes, slaRes, secRes] = await Promise.all([
+        const [accRes, slaRes, secRes, tktRes] = await Promise.all([
           fetch('/api/accounts'),
           fetch('/api/insights?type=sla_at_risk'),
           fetch('/api/insights?type=security_triage'),
+          fetch('/api/tickets?status=open'),
         ]);
 
         if (accRes.ok) setAccounts(await accRes.json());
@@ -108,11 +109,48 @@ export default function InternalChatPage() {
           const sec = await secRes.json();
           setProactiveAlerts((prev) => ({ ...prev, securityP1Count: sec.data?.critical_p1_count || 4 }));
         }
+        if (tktRes.ok) {
+          const allOpenTickets: any[] = await tktRes.json();
+          if (Array.isArray(allOpenTickets) && allOpenTickets.length > 0) {
+            setTabs((prevTabs) =>
+              prevTabs.map((tab) => {
+                if (!tab.accountId) return tab;
+                const tenantTickets = allOpenTickets.filter(
+                  (t) => t.account_id?.toUpperCase() === tab.accountId?.toUpperCase()
+                );
+                if (tenantTickets.length === 0) return tab;
+
+                const existingSubIds = new Set(tab.ticketTabs.map((sub) => sub.id));
+                const newSubTabs = [...tab.ticketTabs];
+
+                for (const tkt of tenantTickets) {
+                  if (!existingSubIds.has(tkt.ticket_id)) {
+                    newSubTabs.push({
+                      id: tkt.ticket_id,
+                      title: `${tkt.ticket_id}: ${tkt.subject ? tkt.subject.slice(0, 20) : 'Inquiry'}`,
+                      ticketId: tkt.ticket_id,
+                      status: tkt.priority === 'P1' ? 'P1 CRITICAL' : 'ACTIVE',
+                      badgeColor: tkt.priority === 'P1' ? 'bg-rose-500' : 'bg-amber-500',
+                    });
+                    existingSubIds.add(tkt.ticket_id);
+                  }
+                }
+
+                return {
+                  ...tab,
+                  ticketTabs: newSubTabs,
+                };
+              })
+            );
+          }
+        }
       } catch (err) {
         console.error('Failed to load accounts/insights:', err);
       }
     }
     loadData();
+    const interval = setInterval(loadData, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   // Click outside listener to close account dropdown

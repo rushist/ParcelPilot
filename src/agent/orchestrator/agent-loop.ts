@@ -252,7 +252,12 @@ async function runConversationalAgentTurn(
   const isInternal = session.surface === 'internal';
   const userRole = isInternal ? (session as any).role || 'support' : 'customer';
   const accountId = (session as any).account_id || 'ACCT-001';
-  const activeTicketId = session.ticket_id || (await resolveDefaultTicketForSession(session, query, history));
+  const explicitTicketMatch = query.match(/TKT-\d+/i);
+  const activeTicketId = explicitTicketMatch
+    ? explicitTicketMatch[0].toUpperCase()
+    : session.ticket_id
+    ? session.ticket_id.toUpperCase()
+    : (await resolveDefaultTicketForSession(session, query, history));
   const queryLower = query.toLowerCase().trim();
 
   // Extract combined context from conversation history & active ticket
@@ -807,7 +812,120 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 11: Close / Resolve Ticket Request (/close, /resolve)
+    // Scenario 11: IN-SCOPE: Ticket Investigation & SLA Resolution with Role-Based Routing
+    // ------------------------------------------------------------------------
+    else if (query.match(/TKT-\d+/i) || queryLower.includes('sla status') || (queryLower.includes('ticket') && queryLower.includes('contract'))) {
+      turnCount++;
+      const ticketId = activeTicketId;
+
+      const tktRes = await dispatchToolCall(session, 'get_tickets', { ticket_id: ticketId });
+      toolTraces.push(tktRes.trace);
+
+      const ticket = await getTicketById(ticketId);
+      if (ticket) {
+        const account = await getAccountById(ticket.account_id);
+        const slaCalc = await calculateSlaStatus(ticket, account);
+
+        turnCount++;
+        const docRes = await dispatchToolCall(session, 'search_docs', {
+          query: `contractual SLA response times and priority definitions for ${ticket.account_id}`,
+        });
+        toolTraces.push(docRes.trace);
+        if (Array.isArray(docRes.result)) sources.push(...docRes.result);
+
+        const accountName = account ? account.account_name : ticket.account_id;
+        const planName = account ? account.plan : 'Standard';
+
+        if (!isInternal) {
+          responseText =
+            `### Inquiry Status for ${ticketId}\n\n` +
+            `- **Subject:** ${ticket.subject}\n` +
+            `- **Priority:** \`${ticket.priority || 'P2'}\`\n` +
+            `- **Current Status:** \`${ticket.status.toUpperCase()}\`\n` +
+            `- **Contractual First Response Target:** **${slaCalc.target_minutes} minutes**\n` +
+            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes}m elapsed)\n\n` +
+            `Our support team is actively tracking your inquiry. To escalate, reply **"escalate to operations"**.`;
+        } else if (queryLower.includes('resolve') || queryLower.includes('close')) {
+          turnCount++;
+          const propRes = await dispatchToolCall(session, 'propose_action', {
+            type: 'ticket_update',
+            target_id: ticketId,
+            reason: `Resolution verified: Operational inquiry resolved for ${ticketId} (${accountName}).`,
+            details: { status: 'RESOLVED', action: 'CLOSE_TICKET', staff_note: `Reviewed SLA target (${slaCalc.target_minutes}m), validated contract terms, and closed inquiry.` },
+          });
+          toolTraces.push(propRes.trace);
+          proposedAction = propRes.result;
+
+          responseText =
+            `### Ticket Resolution & Contract Review: ${ticketId}\n\n` +
+            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
+            `- **Subject:** ${ticket.subject}\n` +
+            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes}m elapsed / ${slaCalc.target_minutes}m target per ${slaCalc.source_authority})\n` +
+            `- **Resolution Mutation:** \`OPEN\` &rarr; \`RESOLVED / CLOSED\`\n\n` +
+            `I have staged the **Ticket Resolution Action** in the right panel for \`${ticketId}\`. Click **Persist Operational Note** to finalize and seal the audit log.`;
+        } else if (userRole === 'support') {
+          turnCount++;
+          const propRes = await dispatchToolCall(session, 'propose_action', {
+            type: 'escalation',
+            target_id: ticketId,
+            reason: `Tier-1 Support Escalation: Incident triage on ${ticketId} (${accountName}).`,
+          });
+          toolTraces.push(propRes.trace);
+          proposedAction = propRes.result;
+          isEscalated = true;
+
+          responseText =
+            `### Ticket Investigation: ${ticketId} (Support View)\n\n` +
+            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
+            `- **Subject:** ${ticket.subject}\n` +
+            `- **Current Status:** \`${ticket.status.toUpperCase()}\`\n` +
+            `- **Contractual SLA Target:** **${slaCalc.target_minutes} minutes** (${slaCalc.source_authority})\n` +
+            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes} minutes elapsed)\n` +
+            `- **Automated Routing:** Routing to **Tier-2 Logistics Operations**.\n\n` +
+            `I have generated a **Tier-2 Escalation Proposal**. Click **Page Tier-2 Dispatch Operations** in the right panel to transfer custody.`;
+        } else if (userRole === 'ops') {
+          turnCount++;
+          const propRes = await dispatchToolCall(session, 'propose_action', {
+            type: 'escalation',
+            target_id: ticketId,
+            reason: `Tier-2 Ops Escalation: Financial concession / sign-off required for ${ticketId} (${accountName}).`,
+          });
+          toolTraces.push(propRes.trace);
+          proposedAction = propRes.result;
+          isEscalated = true;
+
+          responseText =
+            `### Operational Triage: ${ticketId} (Ops View)\n\n` +
+            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
+            `- **Subject:** ${ticket.subject}\n` +
+            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes}m elapsed / ${slaCalc.target_minutes}m target).\n` +
+            `- **Automated Routing:** Requires **Manager Sign-off** &rarr; Routing to **Operations Manager (Tier-3)**.\n\n` +
+            `I have generated a **Manager Escalation Proposal** in the right panel for executive approval.`;
+        } else {
+          turnCount++;
+          const propRes = await dispatchToolCall(session, 'propose_action', {
+            type: 'ticket_update',
+            target_id: ticketId,
+            reason: `Executive RCA Resolution: SLA review and ticket closure verified by Manager.`,
+          });
+          toolTraces.push(propRes.trace);
+          proposedAction = propRes.result;
+
+          responseText =
+            `### Executive Resolution & Audit: ${ticketId} (Manager View)\n\n` +
+            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
+            `- **Subject:** ${ticket.subject}\n` +
+            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes}m elapsed / ${slaCalc.target_minutes}m target)\n` +
+            `- **Executive Clearance:** As **Operations Manager**, you have full authority to execute direct root-cause ticket closure and approve goodwill concessions.\n\n` +
+            `I have prepared the **Executive Ticket Resolution** action in the right panel. Click **Persist Operational Note** to finalize and seal the audit log.`;
+        }
+      } else {
+        responseText = `Ticket **${ticketId}** was not found in the platform database. Please verify the ticket ID.`;
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // Scenario 12: Close / Resolve Ticket Request (/close, /resolve)
     // ------------------------------------------------------------------------
     else if (
       queryLower.startsWith('/close') ||
@@ -843,7 +961,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 12: Internal Staff Operational Notes & Manual Updates
+    // Scenario 13: Internal Staff Operational Notes & Manual Updates
     // ------------------------------------------------------------------------
     else if (
       isInternal &&
@@ -862,24 +980,25 @@ async function runConversationalAgentTurn(
       turnCount++;
       const propRes = await dispatchToolCall(session, 'propose_action', {
         type: 'ticket_update',
-        target_id: 'TKT-501',
+        target_id: activeTicketId,
         reason: query,
         details: { staff_note: query, updated_by: `STAFF (${userRole.toUpperCase()})` },
       });
       toolTraces.push(propRes.trace);
       proposedAction = propRes.result;
 
+      const acc = await getAccountById(accountId);
       responseText =
         `### Operational Note Recorded\n\n` +
         `- **Operator:** \`STAFF (${userRole.toUpperCase()})\`\n` +
         `- **Logged Note:** *"${query}"*\n` +
-        `- **Target Ticket:** \`TKT-501\` (Northstar Logistics)\n` +
+        `- **Target Ticket:** \`${activeTicketId}\` (${acc?.account_name || accountId})\n` +
         `- **Action:** Internal status update attached to audit history.\n\n` +
         `Please review and click **Persist Operational Note** in the right panel to record this to the permanent audit ledger.`;
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 13: Exceeded 20-minute SwiftShip KI-211 Buffer (Proactively escalates)
+    // Scenario 14: Exceeded 20-minute SwiftShip KI-211 Buffer (Proactively escalates)
     // ------------------------------------------------------------------------
     else if (
       !queryLower.includes('credit') &&
@@ -917,102 +1036,6 @@ async function runConversationalAgentTurn(
         `- **Diagnosis:** Physical collection has not registered in the carrier gateway. This indicates either an unscanned driver handoff or an upstream SwiftShip webhook failure.\n` +
         `- **Automatic Escalation:** I have generated an urgent **Tier-2 Operations Escalation Proposal** to directly contact carrier dispatch and verify chain of custody.\n\n` +
         `Please review and click **Confirm Action** in the right panel to execute this escalation immediately.`;
-    }
-
-    // ------------------------------------------------------------------------
-    // Scenario 14: IN-SCOPE: Ticket Investigation & SLA Resolution with Role-Based Routing
-    // ------------------------------------------------------------------------
-    else if (query.match(/TKT-\d+/i) || queryLower.includes('sla status') || (queryLower.includes('ticket') && queryLower.includes('contract'))) {
-      turnCount++;
-      const tktMatch = query.match(/TKT-\d+/i);
-      const ticketId = tktMatch ? tktMatch[0].toUpperCase() : activeTicketId;
-
-      const tktRes = await dispatchToolCall(session, 'get_tickets', { ticket_id: ticketId });
-      toolTraces.push(tktRes.trace);
-
-      const ticket = await getTicketById(ticketId);
-      if (ticket) {
-        const account = await getAccountById(ticket.account_id);
-        const slaCalc = await calculateSlaStatus(ticket, account);
-
-        turnCount++;
-        const docRes = await dispatchToolCall(session, 'search_docs', {
-          query: `contractual SLA response times and priority definitions for ${ticket.account_id}`,
-        });
-        toolTraces.push(docRes.trace);
-        if (Array.isArray(docRes.result)) sources.push(...docRes.result);
-
-        const accountName = account ? account.account_name : ticket.account_id;
-        const planName = account ? account.plan : 'Standard';
-
-        if (!isInternal) {
-          responseText =
-            `### Inquiry Status for ${ticketId}\n\n` +
-            `- **Subject:** ${ticket.subject}\n` +
-            `- **Priority:** \`${ticket.priority || 'P2'}\`\n` +
-            `- **Current Status:** \`${ticket.status.toUpperCase()}\`\n` +
-            `- **Contractual First Response Target:** **${slaCalc.target_minutes} minutes**\n` +
-            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes}m elapsed)\n\n` +
-            `Our support team is actively tracking your inquiry. To escalate, reply **"escalate to operations"**.`;
-        } else if (userRole === 'support') {
-          turnCount++;
-          const propRes = await dispatchToolCall(session, 'propose_action', {
-            type: 'escalation',
-            target_id: ticketId,
-            reason: `Tier-1 Support Escalation: P1 platform outage causing SLA breach on ${ticketId} (${accountName}).`,
-          });
-          toolTraces.push(propRes.trace);
-          proposedAction = propRes.result;
-          isEscalated = true;
-
-          responseText =
-            `### Ticket Investigation: ${ticketId} (Support View)\n\n` +
-            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
-            `- **Subject:** ${ticket.subject}\n` +
-            `- **Current Status:** \`${ticket.status.toUpperCase()}\`\n` +
-            `- **Contractual SLA Target:** **${slaCalc.target_minutes} minutes** (${slaCalc.source_authority})\n` +
-            `- **SLA Status:** **${slaCalc.breached ? 'BREACHED' : 'ON TRACK'}** (${slaCalc.elapsed_minutes} minutes elapsed)\n` +
-            `- **Automated Routing:** Classified as **Technical Outage / Dispatch Failure** &rarr; Routing to **Tier-2 Logistics Operations**.\n\n` +
-            `I have generated a **Tier-2 Escalation Proposal**. Click **Page Tier-2 Dispatch Operations** in the right panel to transfer custody.`;
-        } else if (userRole === 'ops') {
-          turnCount++;
-          const propRes = await dispatchToolCall(session, 'propose_action', {
-            type: 'escalation',
-            target_id: ticketId,
-            reason: `Tier-2 Ops Escalation: SLA breach financial concession sign-off required for ${ticketId} (${accountName}).`,
-          });
-          toolTraces.push(propRes.trace);
-          proposedAction = propRes.result;
-          isEscalated = true;
-
-          responseText =
-            `### Operational Triage: ${ticketId} (Ops View)\n\n` +
-            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
-            `- **Technical Analysis:** Carrier API timeout preventing package creation.\n` +
-            `- **SLA Status:** **BREACHED** (${slaCalc.elapsed_minutes}m elapsed / ${slaCalc.target_minutes}m target).\n` +
-            `- **Automated Routing:** Financial concession / contract breach penalties require **Manager Sign-off** &rarr; Routing to **Operations Manager (Tier-3)**.\n\n` +
-            `I have generated a **Manager Escalation Proposal** in the right panel for executive approval.`;
-        } else {
-          turnCount++;
-          const propRes = await dispatchToolCall(session, 'propose_action', {
-            type: 'ticket_update',
-            target_id: ticketId,
-            reason: `Executive RCA Resolution: SLA breach addressed and outage mitigation verified by Manager.`,
-          });
-          toolTraces.push(propRes.trace);
-          proposedAction = propRes.result;
-
-          responseText =
-            `### Executive Resolution & Audit: ${ticketId} (Manager View)\n\n` +
-            `- **Account:** ${accountName} (\`${ticket.account_id}\` &bull; ${planName} Plan)\n` +
-            `- **Subject:** ${ticket.subject}\n` +
-            `- **SLA Status:** **BREACHED** (${slaCalc.elapsed_minutes}m elapsed / ${slaCalc.target_minutes}m target)\n` +
-            `- **Executive Clearance:** As **Operations Manager**, you have full authority to execute direct root-cause ticket closure and approve goodwill concessions.\n\n` +
-            `I have prepared the **Executive Ticket Resolution** action in the right panel. Click **Persist Operational Note** to finalize and seal the audit log.`;
-        }
-      } else {
-        responseText = `Ticket **${ticketId}** was not found in the platform database. Please verify the ticket ID.`;
-      }
     }
 
     // ------------------------------------------------------------------------
