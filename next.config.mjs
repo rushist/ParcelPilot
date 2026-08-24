@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: false,
   swcMinify: true,
   eslint: {
@@ -7,8 +8,6 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['pg', '@qdrant/js-client-rest', 'pdf-parse', 'xlsx'],
-    cpus: 1,
-    workerThreads: false,
   },
   webpack: (config, { dev }) => {
     if (dev) {

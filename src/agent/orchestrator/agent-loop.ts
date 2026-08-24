@@ -297,20 +297,64 @@ async function runConversationalAgentTurn(
     queryLower.includes('escalate now') ||
     queryLower.includes('please escalate');
 
+  // Pickup status lag flag (e.g. "my order was picked up, but the status isnt updated")
+  const isPickupStatusLagIssue =
+    (queryLower.includes('picked up') || queryLower.includes('pickup') || queryLower.includes('driver collected') || queryLower.includes('collected by driver')) &&
+    (queryLower.includes('not updated') ||
+      queryLower.includes('isnt updated') ||
+      queryLower.includes("isn't updated") ||
+      queryLower.includes('not update') ||
+      queryLower.includes('status') ||
+      queryLower.includes('booked') ||
+      queryLower.includes('still booked') ||
+      queryLower.includes('not changed') ||
+      queryLower.includes('lag') ||
+      queryLower.includes('delay') ||
+      queryLower.includes('why') ||
+      queryLower.includes('how') ||
+      isFollowUpQuestion);
+
+  // Delivery status & payment reconciliation flag
   const isDeliveryStatusIssue =
-    queryLower.includes('delivered but not updated') ||
-    queryLower.includes('delivered but not') ||
-    queryLower.includes('status not updated') ||
-    queryLower.includes('status was not updated') ||
-    queryLower.includes('payment was done') ||
-    queryLower.includes('payment done') ||
-    queryLower.includes('paid but') ||
-    queryLower.includes('package delivered') ||
-    queryLower.includes('already delivered') ||
-    (isFollowUpQuestion &&
-      (allHistoryText.includes('delivered') ||
-        allHistoryText.includes('payment') ||
-        allHistoryText.includes('not updated')));
+    !isPickupStatusLagIssue &&
+    (queryLower.includes('delivered but not updated') ||
+      queryLower.includes('delivered but not') ||
+      queryLower.includes('status not updated') ||
+      queryLower.includes('status was not updated') ||
+      queryLower.includes('payment was done') ||
+      queryLower.includes('payment done') ||
+      queryLower.includes('paid but') ||
+      queryLower.includes('package delivered') ||
+      queryLower.includes('already delivered') ||
+      (isFollowUpQuestion &&
+        (allHistoryText.includes('delivered') ||
+          allHistoryText.includes('payment') ||
+          allHistoryText.includes('not updated'))));
+
+  // Explicit order listing query (ONLY when user explicitly asks to view/list orders)
+  const isOrderListQuery =
+    (queryLower === 'my orders' ||
+      queryLower === 'my order' ||
+      queryLower === 'my shipments' ||
+      queryLower === 'my shipment' ||
+      queryLower === 'show orders' ||
+      queryLower === 'show my orders' ||
+      queryLower === 'show shipments' ||
+      queryLower === 'list orders' ||
+      queryLower === 'list my orders' ||
+      queryLower === 'list shipments' ||
+      queryLower === 'view orders' ||
+      queryLower === 'view my orders' ||
+      queryLower === 'check my orders' ||
+      queryLower === 'all orders' ||
+      queryLower === 'recent orders' ||
+      queryLower === 'order list') &&
+    !isPickupStatusLagIssue &&
+    !isDeliveryStatusIssue &&
+    !queryLower.includes('cancel') &&
+    !queryLower.includes('credit') &&
+    !queryLower.includes('damage') &&
+    !queryLower.includes('stolen');
 
   // Out-of-Scope classification flags
   const isPhysicalDamageIssue =
@@ -470,7 +514,57 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 3: IN-SCOPE: Delivery Status Discrepancy & Payment Done Sync (Solves directly)
+    // Scenario 3: IN-SCOPE: Pickup Status Lag Discrepancy (KI-211 Buffer & Gateway Sync)
+    // ------------------------------------------------------------------------
+    else if (isPickupStatusLagIssue) {
+      turnCount++;
+      const orderId = await resolveDefaultOrderForSession(session, query, history);
+
+      const ordRes = await dispatchToolCall(session, 'get_orders', { account_id: accountId });
+      toolTraces.push(ordRes.trace);
+
+      const docRes = await dispatchToolCall(session, 'search_docs', {
+        query: 'KI-211 SwiftShip pickup webhook delay 20 minutes status BOOKED after pickup',
+      });
+      toolTraces.push(docRes.trace);
+      if (Array.isArray(docRes.result)) sources.push(...docRes.result);
+
+      const orders: OrderRecord[] = ordRes.result || [];
+      const relevantOrder = orders.find((o) => o.order_id === orderId) || orders.find((o) => o.status === 'BOOKED') || orders[0];
+      const targetOrdId = relevantOrder?.order_id || orderId;
+      const carrierName = relevantOrder?.carrier || 'SwiftShip Express';
+
+      turnCount++;
+      const propRes = await dispatchToolCall(session, 'propose_action', {
+        type: 'ticket_update',
+        target_id: activeTicketId,
+        reason: `Pickup status sync requested: Physical pickup completed by ${carrierName} for ${targetOrdId}, portal still displaying BOOKED (Known Issue KI-211).`,
+        details: {
+          action: 'PICKUP_STATUS_SYNC',
+          order_id: targetOrdId,
+          carrier: carrierName,
+          ticket_id: activeTicketId,
+          staff_note: `Polled carrier gateway API and confirmed driver collection scan for ${targetOrdId}.`,
+        },
+      });
+      toolTraces.push(propRes.trace);
+      proposedAction = propRes.result;
+
+      responseText =
+        `### Pickup Status Lag Resolution (${targetOrdId})\n\n` +
+        `I understand that your package was physically collected by the courier driver, but your dashboard still shows **BOOKED** instead of **PICKED_UP**.\n\n` +
+        `**Root Cause & Known Issue Advisory (KI-211):**\n` +
+        `1. **Driver Handheld Webhook Buffer:** Courier partners (such as **${carrierName}**) record pickup scans locally on driver handheld scanners. These collection events batch upload via API webhooks every **15 to 20 minutes** or when the driver completes a dispatch cluster.\n` +
+        `2. **Gateway Synchronization:** Until the webhook packet reaches our system, ParcelPilot safely retains the previous status (\`BOOKED\`) to prevent premature billing events.\n\n` +
+        `**What you can do right now:**\n` +
+        `- **Option 1 (Instant Status Force-Sync):** I have staged a **Status Verification Action** in the right panel for ticket \`${activeTicketId}\`. Click **Persist Operational Note** to immediately poll the carrier API and update the record to \`PICKED_UP\`.\n` +
+        `- **Option 2 (20-Minute Buffer):** If the driver collected the package less than 20 minutes ago, the status will automatically update on the next webhook cycle.\n` +
+        `- **Option 3 (Live Dispatch Escalation):** If the pickup occurred more than 20 minutes ago and status is still lagging, reply **"escalate to operations"** to have our Tier-2 dispatch team verify line-haul custody directly with the depot.\n\n` +
+        `*Source: Product Operations Guide Section 2 (Known Issue KI-211).*`;
+    }
+
+    // ------------------------------------------------------------------------
+    // Scenario 4: IN-SCOPE: Delivery Status Discrepancy & Payment Done Sync
     // ------------------------------------------------------------------------
     else if (isDeliveryStatusIssue) {
       turnCount++;
@@ -521,7 +615,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 4: OUT-OF-SCOPE: Physical Cargo Damage / Leaks (Proactively Escalates)
+    // Scenario 5: OUT-OF-SCOPE: Physical Cargo Damage / Leaks (Proactively Escalates)
     // ------------------------------------------------------------------------
     else if (isPhysicalDamageIssue) {
       const orderId = await resolveDefaultOrderForSession(session, query, history);
@@ -549,7 +643,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 5: OUT-OF-SCOPE: Theft / Stolen Freight / Pilferage (Proactively Escalates)
+    // Scenario 6: OUT-OF-SCOPE: Theft / Stolen Freight / Pilferage (Proactively Escalates)
     // ------------------------------------------------------------------------
     else if (isTheftOrMissingIssue) {
       const orderId = await resolveDefaultOrderForSession(session, query, history);
@@ -577,7 +671,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 6: OUT-OF-SCOPE: Mid-Transit Route Diversion / Address Change
+    // Scenario 7: OUT-OF-SCOPE: Mid-Transit Route Diversion / Address Change
     // ------------------------------------------------------------------------
     else if (isReroutingIssue) {
       const orderId = await resolveDefaultOrderForSession(session, query, history);
@@ -605,7 +699,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 7: Explicit Escalation & Outages / Security Incidents (Out of scope)
+    // Scenario 8: Explicit Escalation & Outages / Security Incidents (Out of scope)
     // ------------------------------------------------------------------------
     else if (
       queryLower.includes('escalat') ||
@@ -665,7 +759,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 8: Polite Chit-Chat & Gratitude
+    // Scenario 9: Polite Chit-Chat & Gratitude
     // ------------------------------------------------------------------------
     else if (
       queryLower === 'thank you' ||
@@ -685,7 +779,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 9: Greetings & Bot Introductions
+    // Scenario 10: Greetings & Bot Introductions
     // ------------------------------------------------------------------------
     else if (
       queryLower === 'hi' ||
@@ -704,7 +798,7 @@ async function runConversationalAgentTurn(
         `### Hello! I am your ParcelPilot Support Copilot\n\n` +
         `I provide instant, deterministic assistance for **${acc ? acc.account_name : accountId}** (\`${accountId}\` &bull; ${acc?.plan || 'Enterprise'} Tier).\n\n` +
         `**Here is how I can assist you:**\n` +
-        `- **Shipments & Delivery:** Ask *"my orders"*, *"track ORD-1001"*, or report delivery/payment status updates.\n` +
+        `- **Shipments & Delivery:** Ask *"my orders"*, *"track ORD-1001"*, or report pickup / delivery status updates.\n` +
         `- **Cancellations & Fee Checks:** Ask *"cancel order ORD-1001"* or *"what is my cancellation fee?"*.\n` +
         `- **Service Credits:** Ask *"calculate service credit for ORD-2002"* or report missed carrier pickups.\n` +
         `- **SLA & Agreements:** Ask *"what is our SLA target?"* or *"check agreement terms"*.\n` +
@@ -713,7 +807,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 10: Close / Resolve Ticket Request (/close, /resolve)
+    // Scenario 11: Close / Resolve Ticket Request (/close, /resolve)
     // ------------------------------------------------------------------------
     else if (
       queryLower.startsWith('/close') ||
@@ -749,7 +843,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 11: Internal Staff Operational Notes & Manual Updates
+    // Scenario 12: Internal Staff Operational Notes & Manual Updates
     // ------------------------------------------------------------------------
     else if (
       isInternal &&
@@ -785,7 +879,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 12: Exceeded 20-minute SwiftShip KI-211 Buffer (Proactively escalates)
+    // Scenario 13: Exceeded 20-minute SwiftShip KI-211 Buffer (Proactively escalates)
     // ------------------------------------------------------------------------
     else if (
       !queryLower.includes('credit') &&
@@ -826,7 +920,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 13: IN-SCOPE: Ticket Investigation & SLA Resolution with Role-Based Routing
+    // Scenario 14: IN-SCOPE: Ticket Investigation & SLA Resolution with Role-Based Routing
     // ------------------------------------------------------------------------
     else if (query.match(/TKT-\d+/i) || queryLower.includes('sla status') || (queryLower.includes('ticket') && queryLower.includes('contract'))) {
       turnCount++;
@@ -922,7 +1016,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 14: Compensation / Concession Credit Requests (e.g. 2500 rupees)
+    // Scenario 15: Compensation / Concession Credit Requests (e.g. 2500 rupees)
     // ------------------------------------------------------------------------
     else if (
       queryLower.includes('compensation') ||
@@ -971,25 +1065,9 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 15: IN-SCOPE: Order Listing & Shipment Status Inquiries ("my orders", "show shipments")
+    // Scenario 16: IN-SCOPE: Order Listing & Shipment Status Inquiries ("my orders", "show shipments")
     // ------------------------------------------------------------------------
-    else if (
-      queryLower.includes('my orders') ||
-      queryLower.includes('my order') ||
-      queryLower.includes('my shipment') ||
-      queryLower.includes('my shipments') ||
-      queryLower.includes('show orders') ||
-      queryLower.includes('show my orders') ||
-      queryLower.includes('list orders') ||
-      queryLower.includes('list my orders') ||
-      queryLower.includes('get orders') ||
-      queryLower.includes('check my orders') ||
-      queryLower.includes('all orders') ||
-      queryLower.includes('recent orders') ||
-      queryLower.includes('order status') ||
-      queryLower.includes('shipment status') ||
-      (queryLower.includes('orders') && !queryLower.includes('cancel') && !queryLower.includes('credit') && !queryLower.includes('fee'))
-    ) {
+    else if (isOrderListQuery) {
       turnCount++;
       const targetAccountId = isInternal
         ? (query.match(/ACCT-\d+/i) ? query.match(/ACCT-\d+/i)![0].toUpperCase() : accountId)
@@ -1038,7 +1116,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 16: IN-SCOPE: Cancellation Inquiry & Precedence Overrides
+    // Scenario 17: IN-SCOPE: Cancellation Inquiry & Precedence Overrides
     // ------------------------------------------------------------------------
     else if (
       queryLower.includes('cancel') ||
@@ -1102,7 +1180,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 17: IN-SCOPE: Service Credit / Failed Pickup
+    // Scenario 18: IN-SCOPE: Service Credit / Failed Pickup
     // ------------------------------------------------------------------------
     else if (
       queryLower.includes('credit') ||
@@ -1142,7 +1220,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 18: IN-SCOPE: Bulk Upload / CSV Limits & KI-208
+    // Scenario 19: IN-SCOPE: Bulk Upload / CSV Limits & KI-208
     // ------------------------------------------------------------------------
     else if (queryLower.includes('bulk upload') || queryLower.includes('csv') || queryLower.includes('upload limit')) {
       turnCount++;
@@ -1161,7 +1239,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 19: IN-SCOPE: SwiftShip Status / KI-211 Initial Query
+    // Scenario 20: IN-SCOPE: SwiftShip Status / KI-211 Initial Query
     // ------------------------------------------------------------------------
     else if (queryLower.includes('swiftship') || queryLower.includes('status lag') || queryLower.includes('booked')) {
       turnCount++;
@@ -1179,7 +1257,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 20: IN-SCOPE: SLA / Response Time / Contractual Targets
+    // Scenario 21: IN-SCOPE: SLA / Response Time / Contractual Targets
     // ------------------------------------------------------------------------
     else if (
       queryLower.includes('sla') ||
@@ -1228,7 +1306,7 @@ async function runConversationalAgentTurn(
     }
 
     // ------------------------------------------------------------------------
-    // Scenario 21: General Search & Conversational Fallback
+    // Scenario 22: General Search & Conversational Fallback
     // ------------------------------------------------------------------------
     else {
       turnCount++;

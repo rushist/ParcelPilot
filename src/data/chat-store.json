@@ -199,6 +199,156 @@
       "timeLabel": "03:29:51 am",
       "speakerLabel": "SYSTEM EXECUTION",
       "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571408926",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `CANCELLATION` on `ORD-1001`\n- **Authorized By:** `Customer (ACCT-001)`\n- **Status:** **EXECUTED**\n- **Details:** Order ORD-1001 cancellation successfully confirmed (fee: INR 0).\n- **Audit Reference:** `AUD-MT75V2IG-QQQZ`",
+      "timestamp": "2026-08-24T11:36:48.758Z",
+      "timeLabel": "05:06:48 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571408931",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (Priya [manager])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 2500 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT75V2KU-GP4G`",
+      "timestamp": "2026-08-24T11:36:48.844Z",
+      "timeLabel": "05:06:48 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571409019",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (SupportAgent1 [support])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 400 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT75V2NI-9CKB`",
+      "timestamp": "2026-08-24T11:36:48.939Z",
+      "timeLabel": "05:06:49 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571409079",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `CANCELLATION` on `ORD-1001`\n- **Authorized By:** `Customer (ACCT-001)`\n- **Status:** **EXECUTED**\n- **Details:** Order ORD-1001 cancellation successfully confirmed (fee: INR 0).\n- **Audit Reference:** `AUD-MT75V2PE-IST7`",
+      "timestamp": "2026-08-24T11:36:49.008Z",
+      "timeLabel": "05:06:49 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571409085",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (ManagerPriya [manager])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 1500 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT75V2Q2-931D`",
+      "timestamp": "2026-08-24T11:36:49.032Z",
+      "timeLabel": "05:06:49 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571526917",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `CANCELLATION` on `ORD-1001`\n- **Authorized By:** `Customer (ACCT-001)`\n- **Status:** **EXECUTED**\n- **Details:** Order ORD-1001 cancellation successfully confirmed (fee: INR 0).\n- **Audit Reference:** `AUD-MT75XLGF-3H1O`",
+      "timestamp": "2026-08-24T11:38:46.621Z",
+      "timeLabel": "05:08:46 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571526920",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (Priya [manager])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 2500 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT75XLLC-Q9B2`",
+      "timestamp": "2026-08-24T11:38:46.798Z",
+      "timeLabel": "05:08:46 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571526975",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (SupportAgent1 [support])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 400 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT75XLOT-KUHH`",
+      "timestamp": "2026-08-24T11:38:46.924Z",
+      "timeLabel": "05:08:46 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571527147",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `CANCELLATION` on `ORD-1001`\n- **Authorized By:** `Customer (ACCT-001)`\n- **Status:** **EXECUTED**\n- **Details:** Order ORD-1001 cancellation successfully confirmed (fee: INR 0).\n- **Audit Reference:** `AUD-MT75XLQ0-OT0Z`",
+      "timestamp": "2026-08-24T11:38:46.967Z",
+      "timeLabel": "05:08:47 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571527239",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (ManagerPriya [manager])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 1500 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT75XLQN-MZIM`",
+      "timestamp": "2026-08-24T11:38:46.989Z",
+      "timeLabel": "05:08:47 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571905653",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `CANCELLATION` on `ORD-1001`\n- **Authorized By:** `Customer (ACCT-001)`\n- **Status:** **EXECUTED**\n- **Details:** Order ORD-1001 cancellation successfully confirmed (fee: INR 0).\n- **Audit Reference:** `AUD-MT765PQ9-38I1`",
+      "timestamp": "2026-08-24T11:45:05.408Z",
+      "timeLabel": "05:15:05 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571905656",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (Priya [manager])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 2500 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT765PUD-YWFY`",
+      "timestamp": "2026-08-24T11:45:05.556Z",
+      "timeLabel": "05:15:05 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571905715",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (SupportAgent1 [support])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 400 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT765PX9-9HW5`",
+      "timestamp": "2026-08-24T11:45:05.660Z",
+      "timeLabel": "05:15:05 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571905769",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `CANCELLATION` on `ORD-1001`\n- **Authorized By:** `Customer (ACCT-001)`\n- **Status:** **EXECUTED**\n- **Details:** Order ORD-1001 cancellation successfully confirmed (fee: INR 0).\n- **Audit Reference:** `AUD-MT765PYL-9HH8`",
+      "timestamp": "2026-08-24T11:45:05.708Z",
+      "timeLabel": "05:15:05 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
+    },
+    {
+      "id": "conf-1787571905773",
+      "account_id": "ACCT-001",
+      "role": "assistant",
+      "content": "### Action Executed\n\n- **Action:** `SERVICE_CREDIT` on `ORD-1001`\n- **Authorized By:** `Internal User (ManagerPriya [manager])`\n- **Status:** **EXECUTED**\n- **Details:** Service credit of INR 1500 issued for order ORD-1001.\n- **Audit Reference:** `AUD-MT765PZ7-3YWA`",
+      "timestamp": "2026-08-24T11:45:05.729Z",
+      "timeLabel": "05:15:05 pm",
+      "speakerLabel": "SYSTEM EXECUTION",
+      "isActionConfirmation": true
     }
   ]
 }
